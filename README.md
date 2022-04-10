@@ -89,6 +89,8 @@ Here are the projects of this repo, ordered from most to least basics with a sho
 
 - `filesAndNamespaces`:
     Lean 4 is a modern language so, in a project, the way sources are layed out on your filesystem
-    carries semantics. You cannot do anything non-trivial without understanding this first, and then
+    carries meaning. You cannot do anything non-trivial without understanding this first, and then
     you need to understand how *namespaces* work. *"Namespace"* is exactly the same as *"module"*
-    since lean does not have functors, thankfully.
+    since lean does not have functors.
+
+    This project also discusses the `import` mecanics.
