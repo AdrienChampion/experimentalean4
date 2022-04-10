@@ -3,14 +3,8 @@ Experimenting with lean4.
 
 
 Below are very basic things to get you started like setup and basic docs/resources. The rest of this
-repo is readme-equipped folders containing lean4 projects trying to showcase something.
-
-
-
-Table of contents
-- [Ecosystem and Setup](#ecosystem-and-setup)
-- [Resources](#resources)
-- [Experimentalean4](#experimentalean4)
+repo is readme-equipped folders containing lean4 projects trying to showcase something. They are
+discussed in Section [Experimentalean4](#experimentalean4).
 
 
 
