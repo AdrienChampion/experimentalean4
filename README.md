@@ -81,7 +81,7 @@ tactics
 
 Here are the projects of this repo, ordered from most to least basics with a short description.
 
-- `filesAndNamespaces`:
+- [`filesAndNamespaces`](./filesAndNamespaces):
     Lean 4 is a modern language so, in a project, the way sources are layed out on your filesystem
     carries meaning. You cannot do anything non-trivial without understanding this first, and then
     you need to understand how *namespaces* work. *"Namespace"* is exactly the same as *"module"*
