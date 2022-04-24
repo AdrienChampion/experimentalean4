@@ -170,6 +170,48 @@ section filterMap
     { subStream, filterMap }
 end filterMap
 
+section merge
+  structure Stream.Merge
+    (S₁ S₂ : Type u)
+    [Stream S₁ α] [Stream S₂ α]
+  where
+    subStream₁ : S₁
+    subStream₂ : S₂
+    decideNext : α → α → Bool
+
+  partial def Stream.Merge.next?
+    [Stream S₁ α] [Stream S₂ α]
+    (self : Stream.Merge S₁ S₂)
+    : Option (α × Stream.Merge S₁ S₂)
+  :=
+    match (Stream.next? self.subStream₁, Stream.next? self.subStream₂) with
+    | (none, none) =>
+      none
+    | (some (a, subStream₁), none) =>
+      some (a, {self with subStream₁})
+    | (none, some (a, subStream₂)) =>
+      some (a, {self with subStream₂})
+    | (some (a₁, subStream₁), some (a₂, subStream₂)) =>
+      if self.decideNext a₁ a₂ then
+        some (a₁, {self with subStream₁})
+      else
+        some (a₂, {self with subStream₂})
+  
+  instance streamMerge
+    [Stream S₁ α] [Stream S₂ α]
+    : Stream (Stream.Merge S₁ S₂) α
+  where
+    next? := Stream.Merge.next?
+  
+  def Stream.merge
+    [Stream S₁ α] [Stream S₂ α]
+    (subStream₁ : S₁) (subStream₂ : S₂)
+    (decideNext : α → α → Bool)
+    : Stream.Merge S₁ S₂
+  :=
+    { subStream₁, subStream₂, decideNext }
+end merge
+
 
 
 section zip
