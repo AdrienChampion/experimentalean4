@@ -1,5 +1,6 @@
 import Mathlib
 
+import Category.Init
 
 
 class Cat (Object : Sort o) where
@@ -70,7 +71,7 @@ namespace Cat.CSet
 
 
 
-  def Fn.nop {σ : outParam All} : Fn σ σ where
+  def Fn.nop {s : outParam All} : Fn s s where
     apply a _ := a
     apply_post a := id
 
@@ -86,9 +87,6 @@ namespace Cat.CSet
   :=
     rfl
 end Cat.CSet
-
-#print Cat.compose_assoc
-#check @Cat.CSet.Fn.compose_assoc
 
 instance Cat.CSet : Cat CSet.All where
   Arrow :=
@@ -107,3 +105,78 @@ instance Cat.CSet : Cat CSet.All where
     CSet.Fn.compose_nop
 
 
+
+namespace Poset
+
+  @[reducible]
+  structure All where
+    Elm : α
+    ord : PartialOrder Elm
+  
+  def All.le {self : All} (a : self.Elm) (b : self.Elm) : Prop :=
+    self.ord.le a b
+
+  local infix:50 " ≤ " => All.le
+
+  structure ProperFn (p₁ p₂ : All) where
+    apply : p₁.Elm → p₂.Elm
+    apply_post (a₁ b₁ : p₁.Elm) :
+      a₁ ≤ b₁ → apply a₁ ≤ apply b₁
+  
+  def ProperFn.compose
+    (g : ProperFn p₂ p₃)
+    (f : ProperFn p₁ p₂)
+    : ProperFn p₁ p₃
+  where
+    apply a₁ :=
+      f.apply a₁
+      |> g.apply
+    apply_post a₁ b₁ h₁ :=
+      let a₂ := f.apply a₁
+      let b₂ := f.apply b₁
+      let h₂ := f.apply_post a₁ b₁ h₁
+      g.apply_post a₂ b₂ h₂
+
+  theorem ProperFn.compose_assoc
+    (h : ProperFn p₃ p₄)
+    (g : ProperFn p₂ p₃)
+    (f : ProperFn p₁ p₂)
+    : h.compose (g.compose f) = (h.compose g).compose f
+  :=
+    rfl
+
+
+
+  def ProperFn.nop {p : outParam All} : ProperFn p p where
+    apply := id
+    apply_post _ _ := id
+
+  theorem ProperFn.compose_nop
+    (f : ProperFn s₁ s₂)
+    : f.compose nop = f
+  :=
+    rfl
+
+  theorem ProperFn.nop_compose
+    (f : ProperFn s₁ s₂)
+    : nop.compose f = f
+  :=
+    rfl
+
+end Poset
+
+instance Cat.Poset : Cat Poset.All where
+  Arrow :=
+    Poset.ProperFn
+
+  compose :=
+    Poset.ProperFn.compose
+  compose_assoc :=
+    Poset.ProperFn.compose_assoc
+
+  nop :=
+    @Poset.ProperFn.nop
+  compose_nop :=
+    @Poset.ProperFn.compose_nop
+  nop_compose :=
+    @Poset.ProperFn.nop_compose
