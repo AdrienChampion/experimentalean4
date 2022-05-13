@@ -1,5 +1,3 @@
-import Mathlib
-
 import Category.Init
 
 
@@ -24,6 +22,32 @@ class Cat (Object : Sort o) where
 infixr:80 " ⇒ " => Cat.Arrow
 infixr:80 " ∘ " => Cat.compose
 export Cat (nop)
+
+
+
+def Cat.zero : Cat Empty :=
+  by
+    apply Cat.mk
+    <;> (
+      intros
+      contradiction
+    )
+
+
+
+def Cat.one : Cat Unit where
+  Arrow _ _  :=
+    Unit
+  compose f g :=
+    ()
+  compose_assoc _ _ _ :=
+    rfl
+  nop _ :=
+    ()
+  nop_compose _ :=
+    rfl
+  compose_nop _ :=
+    rfl
 
 
 
@@ -253,7 +277,6 @@ instance Cat.Mon : Cat Mon.All where
     Mon.Homo.compose
   compose_assoc :=
     Mon.Homo.compose_assoc
-
 
   nop :=
     @Mon.Homo.nop
