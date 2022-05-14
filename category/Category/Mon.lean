@@ -1,6 +1,18 @@
 import Category.Init
 
 
+/-!
+# Category **Mon**
+
+`Mon` is the **Mon** category:
+- objects are all the monoids, and
+- arrows are all the *monoid homomorphisms*.
+
+*Monoid homomorphisms* preserve the neutral element and are proper *w.r.t.* the monoid's
+multiplication.
+-/
+
+
 
 namespace Mon
 

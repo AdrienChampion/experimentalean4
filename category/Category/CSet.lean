@@ -1,6 +1,15 @@
 import Category.Init
 
 
+/-!
+# Category **Set**
+
+`CSet` is the **Set** category:
+- objects are all the sets, and
+- arrows are all the total functions between sets.
+-/
+
+
 
 namespace Cat.CSet
 

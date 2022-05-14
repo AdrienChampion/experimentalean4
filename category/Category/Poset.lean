@@ -1,6 +1,15 @@
 import Category.Init
 
 
+/-!
+# Category **Poset**
+
+`Poset` is the **Poset** category:
+- objects are all the partially-ordered sets, and
+- arrows are all the order-preserving functions between objects.
+-/
+
+
 
 namespace Poset
 
