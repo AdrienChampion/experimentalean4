@@ -11,7 +11,7 @@ import Category.Init
 
 
 
-namespace Poset
+namespace Cat.Poset
 
   structure All where
     Elm : α
@@ -67,7 +67,9 @@ namespace Poset
   :=
     rfl
 
-end Poset
+end Cat.Poset
+
+
 
 instance Cat.Poset : Cat Poset.All where
   Arrow :=
@@ -84,3 +86,26 @@ instance Cat.Poset : Cat Poset.All where
     @Poset.ProperFn.compose_id
   id_compose :=
     @Poset.ProperFn.id_compose
+
+
+
+--- Category which objects are the elements of a poset.
+---
+--- There is an array between `α` and `β` iff `α ≤ β`.
+---
+--- Note that this allows to see `Cat.Poset` as a category of categories.
+instance Cat.PosetPairs [ord : PartialOrder Object] : Cat Object where
+  Arrow e₁ e₂ :=
+    e₁ ≤ e₂
+
+  compose {α β γ} f g :=
+    ord.le_trans α β γ g f
+  compose_assoc f g h :=
+    by simp
+
+  id {α} :=
+    ord.le_refl α
+  compose_id :=
+    by simp
+  id_compose :=
+    by simp

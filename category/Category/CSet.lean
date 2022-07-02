@@ -57,7 +57,7 @@ namespace Cat.CSet
 
   protected def Fn.id {s : outParam All} : Fn s s where
     apply a _ := a
-    apply_post a := id
+    apply_post _ := id
 
   theorem Fn.compose_id
     (f : Fn s₁ s₂)

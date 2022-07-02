@@ -1,9 +1,15 @@
 import Lake
 open Lake DSL
 
-package Category {
-  dependencies := #[{
-    name := `mathlib
-    src := Source.git "https://github.com/leanprover-community/mathlib4.git" "master"
-  }]
+package category {
+}
+require mathlib from git
+  "https://github.com/leanprover-community/mathlib4.git"
+
+lean_lib Category {
+}
+
+@[defaultTarget]
+lean_exe category {
+  root := `Main
 }

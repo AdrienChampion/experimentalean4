@@ -22,7 +22,7 @@ namespace Mon
 
   def All.mul {self : All} (a b : self.Elm) : self.Elm :=
     self.mon.mul a b
-  
+
   local infixl:70 " * " => All.mul
 
 
@@ -77,6 +77,8 @@ namespace Mon
 
 end Mon
 
+
+
 instance Cat.Mon : Cat Mon.All where
   Arrow :=
     Mon.Homo
@@ -92,3 +94,24 @@ instance Cat.Mon : Cat Mon.All where
     Mon.Homo.id_compose
   compose_id :=
     Mon.Homo.compose_id
+
+
+
+structure Cat.SingleMon.Arrow (Elm : Sort e) where
+  val : Elm
+
+instance Cat.SingleMon [mon : Monoid Elm] : Cat Unit where
+  Arrow _ _ :=
+    SingleMon.Arrow Elm
+
+  compose f g :=
+    ⟨f.val * g.val⟩
+  compose_assoc f g h :=
+    by simp [mon.mul_assoc f.val g.val h.val]
+
+  id := ⟨1⟩
+  id_compose :=
+    by simp at *
+  compose_id :=
+    by simp at *
+
