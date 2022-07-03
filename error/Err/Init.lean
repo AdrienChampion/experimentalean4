@@ -1,0 +1,121 @@
+
+
+/-! # Basic types
+
+-/
+
+
+
+namespace Err
+
+
+
+/-! ## Random useful stuff -/
+
+/-- `K` combinator, discards its input and returns `val`. -/
+def 𝕂 (val : β) : α → β :=
+  fun _ => val
+
+/-- Lazyfies a term. -/
+macro:max "lazy! " t:term : term =>
+  `(fun _ => $t)
+macro:max "lazy_s! " str:interpolatedStr(term) : term =>
+  `(fun _ => s!$str)
+
+
+
+/-! ## Conversion typeclass -/
+
+/-- Converts an `α` into a `β`.
+
+`Into α α` for all `α` is provided, along with a few others.
+-/
+class Into (α : Type u) (β : Type v) where
+  conv : α → β
+
+export Into (conv)
+
+instance instIntoSelf : Into α α where
+  conv :=
+    id
+
+instance instIntoToString [ToString α] : Into α String where
+  conv :=
+    toString
+
+instance instIntoOption : Into α (Option α) where
+  conv :=
+    some
+
+
+
+/-! ## List/string creation by repeating a value -/
+
+--- `[a, a, ...]` repeating `n` times.
+protected def List.repeat (a : α) : Nat → List α
+  | 0 => []
+  | n + 1 => a :: List.repeat a n
+--- `⟨[c, c, ...]⟩` repeating `n` times.
+protected def String.repeat (c : Char) (n : Nat) : String :=
+  ⟨List.repeat c n⟩
+
+
+
+/-! ## Styling, used for displaying fancy errors -/
+
+/-- Stores styling functions, typically using ANSI escape codes.
+
+The `Inhabited.default` performs no styling, *i.e.* all functions are `id`.
+-/
+structure Style where
+  --- Fatal text (red).
+  fatal : String → String
+  --- Bad text (yellow).
+  bad : String → String
+  --- Good text (green).
+  good : String → String
+  --- Bold.
+  bold : String → String
+  --- Italic.
+  ita : String → String
+  --- Underlined.
+  uline : String → String
+
+--- Does not do any styling.
+instance instInhabitedStyle : Inhabited Style where
+  default :=
+    ⟨id, id, id, id, id, id⟩
+
+
+
+/-- Styles itself to `String` and `Std.Format` (multiline).
+
+A few instances are provided:
+- `ToStyled String`
+- `Repr ε ⇒ ToStyled ε`
+- `ToString ε ⇒ ToStyled ε`
+All of them ignore their `Style` parameter.
+-/
+class Style.ToStyled (ε : Type u) where
+  --- Styles itself to `String` (multiline).
+  toStyled : ε → Style → String
+  --- Sytles itself to `Std.Format` (multiline), same as `toStyled` by default.
+  toStyledRepr : ε → Style → Nat → Std.Format :=
+    fun e s _ =>
+      toStyled e s
+      |> Std.Format.text
+
+instance instToStyledString : Style.ToStyled String where
+  toStyled s _ :=
+    s
+
+instance instToStyledRepr [Repr ε] : Style.ToStyled ε where
+  toStyled e _ :=
+    s!"{reprPrec e 1}"
+  toStyledRepr e _ prec :=
+    reprPrec e prec
+
+instance instToStyledToString [ToString ε] : Style.ToStyled ε where
+  toStyled s _ :=
+    toString s
+
