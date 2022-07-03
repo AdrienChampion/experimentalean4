@@ -88,3 +88,19 @@ theorem Arrow.compose₁_id
     cases f
     <;> simp [compose₁]
     <;> sorry
+    
+theorem Arrow.id_compose : Arrow.compose₁ id g = g :=
+  by
+    simp only [compose₁]
+theorem Arrow.compose_id : Arrow.compose₁ f id = f :=
+  by
+    simp only [compose₁]
+-- failed to generate equality theorems for `match` expression `Arrow.compose₁.match_1`
+-- case unit
+-- motive : (β γ : O) → Arrow β γ → Arrow O.unit β → Sort u_1
+-- h_1 : (β : O) → (g : Arrow O.unit β) → motive β β id g
+-- h_2 : (γ : O) → (f : Arrow O.unit γ) → motive O.unit γ f id
+-- h_3 : (β γ β_1 : O) → (f₁ : Arrow β_1 γ) → (f₂ : Arrow β β_1) → (g : Arrow O.unit β) → motive β γ (comp f₁ f₂) g
+-- h_4 : (β γ : O) → (f : Arrow β γ) → (g : Arrow O.unit β) → motive β γ f g
+-- : O.unit = O.unit → HEq unit id → False
+-- ⊢ h_4 O.unit O.unit unit id = h_2 O.unit unit
