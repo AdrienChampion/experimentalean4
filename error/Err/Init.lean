@@ -101,6 +101,23 @@ instance instInhabitedStyle : Inhabited Style where
   default :=
     ⟨id, id, id, id, id, id⟩
 
+namespace Style
+  /-- Markdown-like style. -/
+  def md : Style where
+    bold s :=
+      s!"**{s}**"
+    ita s :=
+      s!"*{s}*"
+    uline s :=
+      s!"__{s}__"
+    fatal s :=
+      s!"**{s}**"
+    bad s :=
+      s!"*{s}*"
+    good s :=
+      s
+end Style
+
 
 
 /-- Styles itself to `String` and `Std.Format` (multiline).

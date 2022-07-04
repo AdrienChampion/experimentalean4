@@ -10,6 +10,10 @@ namespace Err.Examples.String
 
 abbrev Res :=
   Err.Res String
+abbrev ErrStateT :=
+  Err.ErrStateT String
+abbrev ErrStateM :=
+  Err.ErrStateM String
 
 abbrev resOf (source : String) (trace : optParam (List String) []) : Res α :=
   ⟨source, trace⟩
@@ -62,3 +66,31 @@ example :
 --     resOf, Err.mk
 --   ]
 --   rfl
+
+
+
+@[simp]
+abbrev ErrState.divAddDiv? (a b c d : Nat) : ErrStateM (Option Nat) :=
+  do
+    let d₁ ←
+      div? a b
+      |>.withContext
+        lazy_s!"cannot compute `{a}/{b}`"
+      |> ErrStateT.unwrap?
+
+    let d₂ ←
+      div? c d
+      |>.withContext
+        lazy_s!"cannot compute `{c}/{d}"
+      |> ErrStateT.unwrap?
+
+    ErrStateT.withContext
+      lazy_s!"failed to compute `{a}/{b} + {c}/{d}"
+
+    if let (some d₁, some d₂) := (d₁, d₂)
+    then
+      d₁ + d₂ |> some |> pure
+    else
+      pure none
+
+#eval ErrState.divAddDiv? 3 0 7 0 |>.run default |>.2
