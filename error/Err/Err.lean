@@ -58,23 +58,18 @@ namespace Err
   def reprPrec
     [E : Repr ε]
     (prec : Nat)
-    (indentCount : optParam Nat 0)
     (pref : optParam String "- ")
     : Std.Format
   :=
     self.foldl concat init
   where
-    indent :=
-      String.repeat ' ' indentCount
     init err :=
       E.reprPrec err prec
       |>.nest 2
     concat fmt err :=
       let text :=
-        indent ++ (
-          pref ++ E.reprPrec err prec
-          |>.nest 2
-        )
+        pref ++ E.reprPrec err prec
+        |>.nest 2
       f!"{fmt}\n{text}"
 
   def toStyledString
@@ -108,6 +103,18 @@ namespace Err
     concat str err :=
       s!"{str}\n{indent}{pref}{E.toString err}"
 end Err
+
+
+
+/-! ## Basic instances -/
+
+instance instIntoErr [Into ε' ε] : Into ε' (Err ε) where
+  conv :=
+    Err.mk ∘ conv
+
+
+
+/-! ## (Pretty-)printing -/
 
 instance instToStringErr [ToString ε] : ToString (Err ε) where
   toString :=

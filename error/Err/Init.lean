@@ -22,6 +22,12 @@ macro:max "lazy! " t:term : term =>
 macro:max "lazy_s! " str:interpolatedStr(term) : term =>
   `(fun _ => s!$str)
 
+def List.revAppend (self : List α) (l : List α) : List α :=
+  match l with
+  | [] => self
+  | hd::tl =>
+    revAppend (hd :: self) tl
+
 
 
 /-! ## Conversion typeclass -/
@@ -46,6 +52,15 @@ instance instIntoToString [ToString α] : Into α String where
 instance instIntoOption : Into α (Option α) where
   conv :=
     some
+
+instance instIntoFunctor
+  {F : Type u → Type v}
+  [Functor F]
+  [C : Into α β]
+  : Into (F α) (F β)
+where
+  conv :=
+    Functor.map C.conv
 
 
 
@@ -119,3 +134,9 @@ instance instToStyledToString [ToString ε] : Style.ToStyled ε where
   toStyled s _ :=
     toString s
 
+/-- Convenience `Style.ToStyled.toStyled` alias. -/
+abbrev Style.toStyled [S : Style.ToStyled α] :=
+  S.toStyled
+/-- Convenience `Style.ToStyled.toStyledRepr` alias. -/
+abbrev Style.toStyledRepr [S : Style.ToStyled α] :=
+  S.toStyledRepr
