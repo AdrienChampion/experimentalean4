@@ -12,15 +12,35 @@ namespace Err
 
 
 
-inductive State.Tree (ε : Type u) where
+inductive State.Tree (γ : Type u) (ε : Type v) where
   --- Leaf, just an error.
-  | leaf : Err ε → Tree ε
+  | leaf : ε → Tree γ ε
   --- Stores a context bit and a non-empty list of trees.
-  | node : ε → Tree ε → List (Tree ε) → Tree ε
+  | node : γ → Tree γ ε → List (Tree γ ε) → Tree γ ε
 
 namespace State.Tree
   variable
-    {ε : Type u}
+    {γ : Type u}
+    {ε : Type v}
+
+  /-- Number of errors appearing in the tree, *i.e.* number of leaves
+
+      Should **not** be partial, but Lean struggles to prove termination.
+  -/
+  partial def errCount : Tree γ ε → Nat
+    | leaf _ => 1
+    | node _ hd tl =>
+      hd.errCount
+      |> tl.foldl
+        fun sum tree => sum + tree.errCount
+
+  /-- Turns an `Err` into a `Tree`. -/
+  def ofErr (e : Err γ ε) : Tree γ ε :=
+    Tree.leaf e.source
+    |> e.trace.reverse.foldl
+      fun tree ctx =>
+        Tree.node ctx tree []
+
 
   /-! ## (Pretty-)printing
 
@@ -38,12 +58,13 @@ namespace State.Tree
       A commented version using `Tree.rec` is provided in the body.
   -/
   partial def toStyledRepr
-    [E : Style.ToStyled ε]
-    (self : Tree ε)
+    [Eε : Style.ToStyled ε]
+    [Eγ : Style.ToStyled γ]
+    (self : Tree γ ε)
     (style : Style)
     (prec : Nat)
     (pref : optParam String "- ")
-    (isTop : optParam Bool true)
+    -- (isTop : optParam Bool true)
     : Std.Format
   :=
     -- self.rec
@@ -77,29 +98,28 @@ namespace State.Tree
     -- structural-recursive-by-hand version
     match self with
     | leaf error =>
-      f!"{pref}{error.toStyledRepr style prec pref |>.nest 2}"
-    | node e tree tail =>
-      let eFmt :=
-        E.toStyledRepr e style prec
+      (pref ++ Eε.toStyledRepr error style prec)
+      |>.nest 2
+    | node ctx tree tail =>
+      let ctxFmt :=
+        pref ++ Eγ.toStyledRepr ctx style prec
       let treeFmt :=
-        tree.toStyledRepr style prec pref false
-      let head :=
-        eFmt ++ Std.Format.line ++ treeFmt
-      if tail.isEmpty ∧ ¬isTop
-      then
-        head
-      else
-        head
+        tree.toStyledRepr style prec pref -- false
+      match tail with
+      | [] => ctxFmt ++ treeFmt
+      | tail =>
+        (ctxFmt ++ Std.Format.line ++ treeFmt.nest 2)
         |> tail.foldl
           fun fmt tree =>
             let treeFmt :=
-              tree.toStyledRepr style prec pref false
-            f!"{fmt}\n{treeFmt}"
-        |>.nest 2
+              tree.toStyledRepr style prec pref -- false
+              |>.nest 2
+            fmt ++ Std.Format.line ++ treeFmt
 
   def reprPrec
-    [Repr ε]
-    (self : Tree ε)
+    [Style.ToStyled γ]
+    [Style.ToStyled ε]
+    (self : Tree γ ε)
     (prec : Nat)
     (pref : optParam String "- ")
     : Std.Format
@@ -107,8 +127,9 @@ namespace State.Tree
     self.toStyledRepr default prec pref
 
   def toStyledString
+    [Style.ToStyled γ]
     [Style.ToStyled ε]
-    (self : Tree ε)
+    (self : Tree γ ε)
     (style : Style)
     (prec : optParam Nat 1)
     (pref : optParam String "- ")
@@ -117,8 +138,9 @@ namespace State.Tree
     s!"{self.toStyledRepr style prec pref}"
 
   def toString
-    [ToString ε]
-    (self : Tree ε)
+    [Style.ToStyled γ]
+    [Style.ToStyled ε]
+    (self : Tree γ ε)
     (prec : optParam Nat 1)
     (pref : optParam String "- ")
     : String
@@ -131,30 +153,32 @@ end State.Tree
 /-! ## Actual state of the error state monad -/
 
 /-- Maintains a list of current errors and a tree of context-equiped errors. -/
-structure State (ε : Type u) where
+structure State (γ : Type u) (ε : Type v) : Type (max u v) where
 protected innerMk ::
   style : Style
-  current : Err ε |> List
-  trees : State.Tree ε |> List
+  current : List ε
+  trees : List (State.Tree γ ε)
 
 /-- Default value is the empty error state. -/
-instance instInhabitedState : Inhabited (State ε) where
+instance instInhabitedState : Inhabited (State γ ε) where
   default :=
     ⟨default, [], []⟩
 
 namespace State
   variable
-    {ε : Type u}
-    {ε' : Type u}
-    {α : Type v}
-    (self : State ε)
+    {γ : Type u}
+    {γ' : Type u}
+    {ε : Type v}
+    {ε' : Type v}
+    {α : Type w}
+    (self : State γ ε)
 
   /-- Empty error state. -/
-  def empty : State ε :=
+  def empty : State γ ε :=
     ⟨default, [], []⟩
 
   /-- Sets the error state's report style. -/
-  def withStyle (style : Style) : State ε :=
+  def withStyle (style : Style) : State γ ε :=
     { self with style }
 
   /-- True if error state is empty. -/
@@ -165,7 +189,7 @@ namespace State
     ¬ self.isOk
 
   /-- Worst function name ever. -/
-  def errgister [Into ε' (Err ε)] (e : ε') : State ε :=
+  def errgister [Into ε' ε] (e : ε') : State γ ε :=
     { self with current := conv e :: self.current }
 
   /-- Alias for `errgister`. -/
@@ -173,13 +197,13 @@ namespace State
     @errgister
 
   /-- Produces `current` errors and trees as a list of trees. -/
-  def getAllTrees : List (Tree ε) :=
+  def getAllTrees : List (Tree γ ε) :=
     self.current
     |>.map Tree.leaf
     |> List.revAppend self.trees
 
   -- /-- Adds context to the inner (trees of) errors. -/
-  -- def withContext [Into ε' ε] (getCtx' : Unit → ε') : State ε :=
+  -- def withContext [Into ε' ε] (getCtx' : Unit → ε') : State γ ε :=
   --   Id.run do
   --     let mut res :=
   --       self
@@ -204,7 +228,7 @@ namespace State
   --     res
 
   /-- Adds context to the inner errors. -/
-  def withContext [Into ε' ε] (getCtx' : Unit → ε') : State ε :=
+  def withContext [Into γ' γ] (getCtx' : Unit → γ') : State γ ε :=
     match self.current with
     | [] => self
     | hd :: tl =>
@@ -225,10 +249,12 @@ end State
 
 namespace State
   variable
-    {ε : Type u}
-    (self : State ε)
+    {γ : Type u}
+    {ε : Type v}
+    (self : State γ ε)
 
   def toStyledRepr
+    [Style.ToStyled γ]
     [Style.ToStyled ε]
     (style : Style)
     (prec : Nat)
@@ -246,7 +272,8 @@ namespace State
           f!"{fmt}\n{treeFmt}"
 
   def reprPrec
-    [Repr ε]
+    [Style.ToStyled γ]
+    [Style.ToStyled ε]
     (prec : Nat)
     (pref : optParam String "- ")
     : Std.Format
@@ -254,6 +281,7 @@ namespace State
     self.toStyledRepr default prec pref
 
   def toStyledString
+    [Style.ToStyled γ]
     [Style.ToStyled ε]
     (style : Style)
     (prec : optParam Nat 1)
@@ -263,7 +291,8 @@ namespace State
     s!"{self.toStyledRepr style prec pref}"
 
   def toString
-    [ToString ε]
+    [Style.ToStyled γ]
+    [Style.ToStyled ε]
     (prec : optParam Nat 1)
     (pref : optParam String "- ")
     : String
@@ -271,15 +300,27 @@ namespace State
     self.toStyledString default prec pref
 end State
 
-instance instToStringState [ToString ε] : ToString (State ε) where
+instance instToStringState
+  [Style.ToStyled γ]
+  [Style.ToStyled ε]
+: ToString (State γ ε)
+where
   toString :=
     State.toString
 
-instance instReprState [Repr α] [Repr ε] : Repr (State ε) where
+instance instReprState
+  [Style.ToStyled γ]
+  [Style.ToStyled ε]
+: Repr (State γ ε)
+where
   reprPrec :=
     State.reprPrec
 
-instance instToStyledState [Style.ToStyled ε] : Style.ToStyled (State ε) where
+instance instToStyledState
+  [Style.ToStyled γ]
+  [Style.ToStyled ε]
+: Style.ToStyled (State γ ε)
+where
   toStyled :=
     State.toStyledString
   toStyledRepr :=
@@ -291,17 +332,21 @@ instance instToStyledState [Style.ToStyled ε] : Style.ToStyled (State ε) where
 
 namespace State
   variable
-    {ε : Type u}
-    {α : Type v}
-    (self : State ε)
+    {γ : Type u}
+    {ε : Type v}
+    {α : Type w}
+    (self : State γ ε)
 
   /-- Registers an error if any, does nothing otherwise. -/
-  def unwrap? : Res ε α → Option α × State ε
+  def unwrap? : Res γ ε α → Option α × State γ ε
     | ok a => (a, self)
-    | err e => (none, self.errgister e)
+    | err e => (
+      none,
+      { self with trees := self.trees ++ [Tree.ofErr e] }
+    )
 
   /-- Same as `unwrap?` with a default value. -/
-  def getD (res : Res ε α) (default : α) : α × State ε :=
+  def getD (res : Res γ ε α) (default : α) : α × State γ ε :=
     match self.unwrap? res with
     | (some a, state) =>
       (a, state)
@@ -312,7 +357,7 @@ namespace State
     @getD
 
   /-- Same as `unwrap?` with a lazy default value. -/
-  def unwrapOrElse (res : Res ε α) (default : Unit → α) : α × State ε :=
+  def unwrapOrElse (res : Res γ ε α) (default : Unit → α) : α × State γ ε :=
     match self.unwrap? res with
     | (some a, state) =>
       (a, state)
@@ -323,7 +368,11 @@ namespace State
 
       Does **not** report errors in the error state (`self`), only the error being unwrapped.
   -/
-  def unwrap! [Inhabited α] [Style.ToStyled ε] : Res ε α → α × State ε
+  def unwrap!
+    [Inhabited α]
+    [Style.ToStyled γ]
+    [Style.ToStyled ε]
+  : Res γ ε α → α × State γ ε
     | ok a => (a, self)
     | err e =>
       let msg :=
@@ -335,6 +384,7 @@ namespace State
 
   /-- Panics if `self` contains errors, yields `pure ()` otherwise. -/
   def unwrapSelf!
+    [Style.ToStyled γ]
     [Style.ToStyled ε]
     {μ : optParam (Type → Type) Id} [Monad μ]
     : μ Unit
@@ -355,16 +405,18 @@ end State
 
 /-! ## Error state monad -/
 
-/-- State monad transformer, carries an error state `State ε`. -/
-abbrev ErrStateT (ε : Type u) (μ : Type u → Type v) (α : Type u) :=
-  StateT (State ε) μ α
+/-- State monad transformer, carries an error state `State γ ε`. -/
+abbrev ErrStateT (γ : Type u) (ε : Type u) (μ : Type u → Type v) (α : Type u) :=
+  StateT (State γ ε) μ α
 
 /-- Error state monad -/
-abbrev ErrStateM (ε : Type u) (α : Type u) :=
-  ErrStateT ε Id α
+abbrev ErrStateM (γ : Type u) (ε : Type u) (α : Type u) :=
+  ErrStateT γ ε Id α
 
-instance instSubsingletonStateM [Subsingleton (State ε)] [Subsingleton α]
-  : Subsingleton (ErrStateM ε α)
+instance instSubsingletonStateM
+  [Subsingleton (State γ ε)]
+  [Subsingleton α]
+: Subsingleton (ErrStateM γ ε α)
 :=
   inferInstance
 
@@ -379,7 +431,13 @@ namespace ErrStateT
   )
 
   /-- Runs and unwraps the error state, panicking if it contains any error. -/
-  def run! [Style.ToStyled ε] [Monad μ] (x : ErrStateT ε μ α) (s : State ε) : μ α :=
+  def run!
+    [Style.ToStyled γ]
+    [Style.ToStyled ε]
+    [Monad μ]
+    (x : ErrStateT γ ε μ α)
+    (s : State γ ε)
+  : μ α :=
     do
       let (res, state) ←
         ErrStateT.run x s
@@ -387,7 +445,10 @@ namespace ErrStateT
       pure res
 
   /-- Registers the error from `res`, if any. -/
-  def unwrap? [Monad μ] (res : Res ε α) : ErrStateT ε μ (Option α) :=
+  def unwrap?
+    [Monad μ]
+    (res : Res γ ε α)
+  : ErrStateT γ ε μ (Option α) :=
     do
       let state ← get
       let (a?, state) :=
@@ -396,7 +457,11 @@ namespace ErrStateT
       pure a?
 
   /-- Adds some context to all current errors. -/
-  def withContext [Into ε' ε] [Monad μ] (getCtx' : Unit → ε') : ErrStateT ε μ Unit :=
+  def withContext
+    [Into γ' γ]
+    [Monad μ]
+    (getCtx' : Unit → γ')
+  : ErrStateT γ ε μ Unit :=
     do
       let state ← get
       state.withContext getCtx'
@@ -409,31 +474,31 @@ section instances
     [Monad μ]
 
   instance instAlternativeErrStateT [Alternative μ]
-    : Alternative (ErrStateT ε μ)
+    : Alternative (ErrStateT γ ε μ)
   :=
     inferInstance
   instance instMonadErrStateT
-    : Monad (ErrStateT ε μ)
+    : Monad (ErrStateT γ ε μ)
   :=
     inferInstance
   instance instMonadLiftErrStateT
-    : MonadLift μ (ErrStateT ε μ)
+    : MonadLift μ (ErrStateT γ ε μ)
   :=
     inferInstance
   instance instMonadFunctorErrStateT
-    : MonadFunctor μ (ErrStateT ε μ)
+    : MonadFunctor μ (ErrStateT γ ε μ)
   :=
     inferInstance
   instance instMonadExceptOfStateT [MonadExceptOf ε μ]
-    : MonadExceptOf ε (ErrStateT ε μ)
+    : MonadExceptOf ε (ErrStateT γ ε μ)
   :=
     inferInstance
   instance instMonadStateOfStateT
-    : MonadStateOf (State ε) (ErrStateT ε μ)
+    : MonadStateOf (State γ ε) (ErrStateT γ ε μ)
   :=
     inferInstance
   instance instMonadFinallyStateT [MonadFinally μ]
-    : MonadFinally (ErrStateT ε μ)
+    : MonadFinally (ErrStateT γ ε μ)
   :=
     inferInstance
 end instances
@@ -443,7 +508,7 @@ end instances
 /-! ## State monad operations -/
 namespace ErrStateT
   /-- Acts on the error state, sets the style to render errors with. -/
-  def errorReportStyle [Monad μ] (style : Style) : ErrStateT ε μ Unit :=
+  def errorReportStyle [Monad μ] (style : Style) : ErrStateT γ ε μ Unit :=
     do
       let state ← get
       state.withStyle style

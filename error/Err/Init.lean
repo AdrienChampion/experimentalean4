@@ -140,16 +140,21 @@ class Style.ToStyled (ε : Type u) where
 instance instToStyledString : Style.ToStyled String where
   toStyled s _ :=
     s
-
 instance instToStyledRepr [Repr ε] : Style.ToStyled ε where
   toStyled e _ :=
     s!"{reprPrec e 1}"
   toStyledRepr e _ prec :=
     reprPrec e prec
-
 instance instToStyledToString [ToString ε] : Style.ToStyled ε where
   toStyled s _ :=
     toString s
+
+instance instToStringToStyled [Style.ToStyled ε] : ToString ε where
+  toString e :=
+    s!"{Style.ToStyled.toStyledRepr e default 1}"
+instance instReprToStyled [Style.ToStyled ε] : Repr ε where
+  reprPrec e prec :=
+    s!"{Style.ToStyled.toStyledRepr e default prec}"
 
 /-- Convenience `Style.ToStyled.toStyled` alias. -/
 abbrev Style.toStyled [S : Style.ToStyled α] :=

@@ -9,106 +9,91 @@ namespace Err
 
 
 
-structure Err (ε : Type u) where
+structure Err (γ : Type u) (ε : Type v) where
 protected mkAux ::
   source : ε
-  trace : List ε
+  trace : List γ
 
 namespace Err
   variable
-    {ε : Type u}
-    (self : Err ε)
+    {γ : Type u}
+    {ε : Type v}
+    (self : Err γ ε)
 
-  def mk (source : ε) : Err ε :=
+  /-- Constructor. -/
+  def mk (source : ε) : Err γ ε :=
     ⟨source, []⟩
   
-  def context [Into α ε] (err : α) : Err ε :=
+  /-- Adds some context to an error. -/
+  def context [Into γ' γ] (err : γ') : Err γ ε :=
     { self with trace := conv err :: self.trace }
 
-  def split : Err ε → ε × List ε
-    | ⟨source, []⟩ =>
-      (source, [])
-    | ⟨source, head :: tail⟩ =>
-      (head, tail ++ [source])
-
-  def foldl (f : α → ε → α) (init : ε → α) : α :=
-    let (head, tail) :=
-      self.split
-    init head
-    |> tail.foldl f
+  /-- Map over the underlying error. -/
+  def mapSource (f : ε → ε') : Err γ ε' :=
+    { self with source := f self.source }
+  /-- Map over the context bits. -/
+  def mapContext (f : γ → γ') : Err γ' ε :=
+    { self with trace := self.trace.map f }
 
   def toStyledRepr
-    [E : Style.ToStyled ε]
+    [instε : Style.ToStyled ε]
+    [instγ : Style.ToStyled γ]
     (style : Style)
     (prec : Nat)
     (pref : optParam String "- ")
     : Std.Format
   :=
-    self.foldl concat init
-  where
-    init err :=
-      E.toStyledRepr err style prec
-      |> Std.Format.nest 2
-    concat fmt err :=
-      let text :=
-        pref ++ E.toStyledRepr err style prec
-        |> Std.Format.nest 2
-      f!"{fmt}\n{text}"
+    let source :=
+      (pref ++ instε.toStyledRepr self.source style prec)
+      |>.nest 2
+    match self.trace with
+    | [] =>
+      source
+    | hd::tl =>
+      (pref ++ instγ.toStyledRepr hd style prec)
+      |>.nest 2
+      |> tl.foldl
+        fun acc ctx =>
+          acc ++ (
+            (pref ++ instγ.toStyledRepr ctx style prec)
+            |>.nest 2
+          )
 
   def reprPrec
-    [E : Repr ε]
+    [Style.ToStyled ε]
+    [Style.ToStyled γ]
     (prec : Nat)
     (pref : optParam String "- ")
     : Std.Format
   :=
-    self.foldl concat init
-  where
-    init err :=
-      E.reprPrec err prec
-      |>.nest 2
-    concat fmt err :=
-      let text :=
-        pref ++ E.reprPrec err prec
-        |>.nest 2
-      f!"{fmt}\n{text}"
+    self.toStyledRepr default prec pref
+    
 
   def toStyledString
-    [E : Style.ToStyled ε]
+    [Style.ToStyled ε]
+    [Style.ToStyled γ]
     (style : Style)
-    (indentCount : optParam Nat 0)
+    (prec : optParam Nat 1)
     (pref : optParam String "- ")
     : String
   :=
-    self.foldl concat init
-  where
-    indent :=
-      String.repeat ' ' indentCount
-    init err :=
-      E.toStyled err style
-    concat str err :=
-      s!"{str}\n{indent}{pref}{E.toStyled err style}"
+    s!"{self.toStyledRepr style prec pref}"
 
   def toString
-    [E : ToString ε]
-    (indentCount : optParam Nat 0)
+    [Style.ToStyled ε]
+    [Style.ToStyled γ]
+    (prec : optParam Nat 1)
     (pref : optParam String "- ")
     : String
   :=
-    self.foldl concat init
-  where
-    indent :=
-      String.repeat ' ' indentCount
-    init err :=
-      E.toString err
-    concat str err :=
-      s!"{str}\n{indent}{pref}{E.toString err}"
+    self.toStyledString default prec pref
 end Err
 
 
 
 /-! ## Basic instances -/
 
-instance instIntoErr [Into ε' ε] : Into ε' (Err ε) where
+instance instIntoErr [Into ε' ε] : Into ε' (Err γ ε) where
   conv :=
     Err.mk ∘ conv
 
@@ -116,15 +101,10 @@ instance instIntoErr [Into ε' ε] : Into ε' (Err ε) where
 
 /-! ## (Pretty-)printing -/
 
-instance instToStringErr [ToString ε] : ToString (Err ε) where
-  toString :=
-    Err.toString
-
-instance instReprErr [Repr ε] : Repr (Err ε) where
-  reprPrec :=
-    Err.reprPrec
-
-instance instToStyledErr [Style.ToStyled ε] : Style.ToStyled (Err ε) where
+instance instToStyledErr
+  [Style.ToStyled ε] [Style.ToStyled γ]
+  : Style.ToStyled (Err γ ε)
+where
   toStyled :=
     Err.toStyledString
   toStyledRepr :=
@@ -135,18 +115,17 @@ instance instToStyledErr [Style.ToStyled ε] : Style.ToStyled (Err ε) where
 /-! ## `Functor` and `Pure` -/
 
 namespace Err
-  def pure (a : α) :=
+  def pure (a : ε) : Err γ ε :=
     Err.mk a
 
-  def map (f : α → β) : Err α → Err β
-    | ⟨source, trace⟩ =>
-      ⟨f source, trace.map f⟩
+  def map (f : ε → ε') (self : Err γ ε) :  Err γ ε' :=
+    { self with source := f self.source }
 end Err
 
-instance instFunctorErr : Functor Err where
+instance instFunctorErr : Functor (Err γ) where
   map :=
     Err.map
 
-instance instPureErr : Pure Err where
+instance instPureErr : Pure (Err γ) where
   pure :=
     Err.pure

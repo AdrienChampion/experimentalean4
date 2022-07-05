@@ -9,11 +9,11 @@ namespace Err.Examples.String
 
 
 abbrev Res :=
-  Err.Res String
+  Err.Res String String
 abbrev ErrStateT :=
-  Err.ErrStateT String
+  Err.ErrStateT String String
 abbrev ErrStateM :=
-  Err.ErrStateM String
+  Err.ErrStateM String String
 
 abbrev resOf (source : String) (trace : optParam (List String) []) : Res α :=
   ⟨source, trace⟩
