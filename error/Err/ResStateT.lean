@@ -18,6 +18,20 @@ inductive State.Tree (γ : Type u) (ε : Type v) where
   --- Stores a context bit and a non-empty list of trees.
   | node : γ → Tree γ ε → List (Tree γ ε) → Tree γ ε
 
+--- `Err → State.Tree`
+instance instIntoErrTree : Into (Err γ ε) (State.Tree γ ε) where
+  conv
+    | { source, trace } =>
+      source
+      |> State.Tree.leaf
+      |> trace.foldl
+        fun tree ctx => State.Tree.node ctx tree []
+
+--- `ε → State.Tree _ ε`
+instance instIntoErrorTreeError : Into ε (State.Tree γ ε) where
+  conv :=
+    State.Tree.leaf
+
 namespace State.Tree
   variable
     {γ : Type u}
@@ -147,6 +161,15 @@ namespace State.Tree
   :=
     s!"{self.toStyledRepr default prec pref}"
 end State.Tree
+
+instance instToStyledTree
+  [Style.ToStyled α]
+  [Style.ToStyled γ]
+: Style.ToStyled (State.Tree α γ) where
+  toStyled :=
+    State.Tree.toStyledString
+  toStyledRepr :=
+    State.Tree.toStyledRepr
 
 
 
@@ -338,15 +361,23 @@ namespace State
     (self : State γ ε)
 
   /-- Registers an error if any, does nothing otherwise. -/
-  def unwrap? : Res γ ε α → Option α × State γ ε
+  def unwrap?
+    {ε' : Type v}
+    [Into ε' (Tree γ ε)]
+  : Res ε' α → Option α × State γ ε
     | ok a => (a, self)
     | err e => (
       none,
-      { self with trees := self.trees ++ [Tree.ofErr e] }
+      { self with trees := self.trees ++ [conv e] }
     )
 
   /-- Same as `unwrap?` with a default value. -/
-  def getD (res : Res γ ε α) (default : α) : α × State γ ε :=
+  def getD
+    {ε' : Type v}
+    [Into ε' (Tree γ ε)]
+    (res : Res ε' α)
+    (default : α)
+  : α × State γ ε :=
     match self.unwrap? res with
     | (some a, state) =>
       (a, state)
@@ -357,7 +388,12 @@ namespace State
     @getD
 
   /-- Same as `unwrap?` with a lazy default value. -/
-  def unwrapOrElse (res : Res γ ε α) (default : Unit → α) : α × State γ ε :=
+  def unwrapOrElse
+    {ε' : Type v}
+    [Into ε' (Tree γ ε)]
+    (res : Res ε' α)
+    (default : Unit → α)
+  : α × State γ ε :=
     match self.unwrap? res with
     | (some a, state) =>
       (a, state)
@@ -369,15 +405,19 @@ namespace State
       Does **not** report errors in the error state (`self`), only the error being unwrapped.
   -/
   def unwrap!
+    {ε' : Type v}
+    [Into ε' (Tree γ ε)]
     [Inhabited α]
     [Style.ToStyled γ]
     [Style.ToStyled ε]
-  : Res γ ε α → α × State γ ε
+  : Res ε' α → α × State γ ε
     | ok a => (a, self)
     | err e =>
       let msg :=
         "trying to unwrap an error result:\n"
         |> Std.Format.text
+      let e : Tree γ ε :=
+        conv e
       let full :=
         msg ++ (self.style.toStyledRepr e 1)
       panic! s!"{full.nest 0}"
@@ -447,7 +487,7 @@ namespace ErrStateT
   /-- Registers the error from `res`, if any. -/
   def unwrap?
     [Monad μ]
-    (res : Res γ ε α)
+    (res : Res ε α)
   : ErrStateT γ ε μ (Option α) :=
     do
       let state ← get

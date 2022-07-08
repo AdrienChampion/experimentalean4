@@ -10,13 +10,12 @@ namespace Err
 
 /-- Monad transformer -/
 abbrev ResT
-  (γ : Type u)
   (ε : Type u)
   (μ : Type (max u v) → Type w)
   (α : Type v)
   : Type w
 :=
-  μ (Res γ ε α)
+  μ (Res ε α)
 
 
 
@@ -37,28 +36,27 @@ namespace ResT
 
   /-- Turns a `ResT _ μ` into a `μ Res`. -/
   @[inline]
-  def run (a? : ResT γ ε μ α) : μ (Res γ ε α) :=
+  def run (a? : ResT ε μ α) : μ (Res ε α) :=
     a?
 
   /-- Turns a `μ Res` into a `ResT _ μ` -/
-  def mk (a? : μ (Res γ ε α)) : ResT γ ε μ α :=
+  def mk (a? : μ (Res ε α)) : ResT ε μ α :=
     a?
 
   /-- Map over the nominal value. -/
   def map
     [Fun : Functor μ]
     (f : α → β)
-    : ResT γ ε μ α
-    → ResT γ ε μ β
+  : ResT ε μ α → ResT ε μ β
   :=
     Fun.map (Res.map f)
 
   /-- Map over the error value. -/
   def mapErr
     [Fun : Functor μ]
-    (f : Err γ ε → Err γ ε')
-    : ResT γ ε μ α
-    → ResT γ ε' μ α
+    (f : ε → ε')
+  : ResT ε μ α
+    → ResT ε' μ α
   :=
     Fun.map (Res.mapErr f)
 
@@ -66,8 +64,8 @@ namespace ResT
   def mapInnerErr
     [Fun : Functor μ]
     (f : ε → ε')
-    : ResT γ ε μ α
-    → ResT γ ε' μ α
+    : ResT (Err γ ε) μ α
+    → ResT (Err γ ε') μ α
   :=
     Res.mapInnerErr f
     |> Fun.map
@@ -75,8 +73,8 @@ namespace ResT
   def mapInnerContext
     [Fun : Functor μ]
     (f : γ → γ')
-    : ResT γ ε μ α
-    → ResT γ' ε μ α
+    : ResT (Err γ ε) μ α
+    → ResT (Err γ' ε) μ α
   :=
     Res.mapInnerContext f
     |> Fun.map
@@ -89,7 +87,7 @@ namespace ResT
   def pure
     [Mon : Monad μ]
     (a : α)
-    : ResT γ ε μ α
+    : ResT ε μ α
   :=
     ok a
     |> Mon.pure
@@ -97,9 +95,9 @@ namespace ResT
   @[inline]
   def bind
     [Mon : Monad μ]
-    (a? : ResT γ ε μ α)
-    (f? : α → ResT γ ε μ β)
-    : ResT γ ε μ β
+    (a? : ResT ε μ α)
+    (f? : α → ResT ε μ β)
+    : ResT ε μ β
   :=
     mk do
       match ← a? with
@@ -107,7 +105,7 @@ namespace ResT
       | err e => err e |> Mon.pure
 end ResT
 
-instance instMonadResT [Monad μ] : Monad (ResT γ ε μ) where
+instance instMonadResT [Monad μ] : Monad (ResT ε μ) where
   pure :=
     ResT.pure
   bind :=
