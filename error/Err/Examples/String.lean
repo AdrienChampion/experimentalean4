@@ -9,7 +9,7 @@ namespace Err.Examples.String
 
 
 abbrev Res :=
-  Err.Res String String
+  Err.Res (Err.Err String String)
 abbrev ErrStateT :=
   Err.ErrStateT String String
 abbrev ErrStateM :=
@@ -69,28 +69,52 @@ example :
 
 
 
-@[simp]
 abbrev ErrState.divAddDiv? (a b c d : Nat) : ErrStateM (Option Nat) :=
   do
     let d₁ ←
       div? a b
       |>.withContext
-        lazy_s!"cannot compute `{a}/{b}`"
+        lazy_s!"that's unexpected :/"
+      |>.withContext
+        lazy_s!"cannot compute `d₁` as `{a}/{b}`"
       |> ErrStateT.unwrap?
 
     let d₂ ←
       div? c d
       |>.withContext
-        lazy_s!"cannot compute `{c}/{d}"
+        lazy_s!"that's unexpected :/"
+      |>.withContext
+        lazy_s!"cannot compute `d₂` as `{c}/{d}`"
       |> ErrStateT.unwrap?
-
+    
     ErrStateT.withContext
-      lazy_s!"failed to compute `{a}/{b} + {c}/{d}"
+      lazy_s!"while computing `d₁` and `d₂`"
 
     if let (some d₁, some d₂) := (d₁, d₂)
     then
       d₁ + d₂ |> some |> pure
     else
+      ErrStateT.errgister
+        "failed to compute d₁ and/or d₂, see below"
+      ErrStateT.withContext
+        lazy_s!"failed to compute `{a}/{b} + {c}/{d}`"
+      ErrStateT.withContext
+          lazy_s!"something went wrong `/(T_T)\\`"
+      ErrStateT.finalizeWith
+          lazy_s!"error during `divAddDiv?`"
       pure none
 
-#eval ErrState.divAddDiv? 3 0 7 0 |>.run default |>.2
+#eval
+  ErrState.divAddDiv? 3 0 7 0
+  |>.run default
+  |>.2
+
+#eval
+  ErrState.divAddDiv? 3 0 7 0
+  |>.run default
+  |>.2
+  |> fun ⟨_, _, trees⟩ =>
+    trees.head!.linearPrefixFoldl
+    0
+    (fun sum _ => sum + 1)
+    (fun sum _ => sum)

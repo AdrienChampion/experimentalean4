@@ -17,6 +17,7 @@ inductive State.Tree (γ : Type u) (ε : Type v) where
   | leaf : ε → Tree γ ε
   --- Stores a context bit and a non-empty list of trees.
   | node : γ → Tree γ ε → List (Tree γ ε) → Tree γ ε
+deriving Inhabited
 
 --- `Err → State.Tree`
 instance instIntoErrTree : Into (Err γ ε) (State.Tree γ ε) where
@@ -24,8 +25,8 @@ instance instIntoErrTree : Into (Err γ ε) (State.Tree γ ε) where
     | { source, trace } =>
       source
       |> State.Tree.leaf
-      |> trace.foldl
-        fun tree ctx => State.Tree.node ctx tree []
+      |> trace.foldr
+        fun ctx tree => State.Tree.node ctx tree []
 
 --- `ε → State.Tree _ ε`
 instance instIntoErrorTreeError : Into ε (State.Tree γ ε) where
@@ -51,9 +52,24 @@ namespace State.Tree
   /-- Turns an `Err` into a `Tree`. -/
   def ofErr (e : Err γ ε) : Tree γ ε :=
     Tree.leaf e.source
-    |> e.trace.reverse.foldl
+    |> e.trace.foldl
       fun tree ctx =>
         Tree.node ctx tree []
+
+  /-- Extracts the longest linear prefix of the tree. -/
+  def linearPrefixFoldl
+    (init : α)
+    (fold : α → γ → α)
+    (final : α → Tree γ ε → β)
+    (self : Tree γ ε)
+  : β :=
+    match self with
+    | Tree.node ctx tree [] =>
+      let a :=
+        fold init ctx
+      tree.linearPrefixFoldl a fold final
+    | Tree.leaf _ | Tree.node _ _ (_ :: _) =>
+      final init self
 
 
   /-! ## (Pretty-)printing
@@ -78,57 +94,60 @@ namespace State.Tree
     (style : Style)
     (prec : Nat)
     (pref : optParam String "- ")
-    -- (isTop : optParam Bool true)
     : Std.Format
   :=
-    -- self.rec
-    --   -- leaf case
-    --   (fun e =>
-    --     e.toStyledRepr style prec pref
-    --   )
-    --   -- node case, assuming all subtrees have been formatted
-    --   (fun ctx _tree _trees treeFmt treesFmt =>
-    --     let ctxFmt :=
-    --       E.toStyledRepr ctx style prec
-    --     let initFmt :=
-    --       f!"{ctxFmt}\n{treeFmt}"
-    --     if treesFmt.isEmpty
-    --     then
-    --       initFmt
-    --     else
-    --       initFmt
-    --       |> treesFmt.foldl
-    --         fun fmt tree =>
-    --           f!"{fmt}\n{treeFmt}"
-    --       |>.nest 2
-    --   )
-    --   -- init for fold over `trees` yielding `Std.Format`
-    --   []
-    --   -- step for fold over `trees` yielding `Std.Format`
-    --   (fun _ _ hdFmt tlFmt => 
-    --     hdFmt :: tlFmt
-    --   )
+    self.linearPrefixFoldl init fold final
+  where
+    nestLevel :=
+      pref.length
 
-    -- structural-recursive-by-hand version
-    match self with
-    | leaf error =>
-      (pref ++ Eε.toStyledRepr error style prec)
-      |>.nest 2
-    | node ctx tree tail =>
-      let ctxFmt :=
-        pref ++ Eγ.toStyledRepr ctx style prec
-      let treeFmt :=
-        tree.toStyledRepr style prec pref -- false
-      match tail with
-      | [] => ctxFmt ++ treeFmt
-      | tail =>
-        (ctxFmt ++ Std.Format.line ++ treeFmt.nest 2)
-        |> tail.foldl
-          fun fmt tree =>
-            let treeFmt :=
-              tree.toStyledRepr style prec pref -- false
-              |>.nest 2
-            fmt ++ Std.Format.line ++ treeFmt
+    init :=
+      none
+
+    fold
+      (acc : Option Std.Format)
+      (ctx : γ)
+    : Option Std.Format :=
+      let (pref, andThen) :=
+        if let some acc := acc then (
+          pref.length |> String.repeat ' ',
+          fun fmt => acc ++ Std.Format.line ++ fmt
+        ) else (pref, id)
+      (pref ++ Eγ.toStyledRepr ctx style prec)
+      |> andThen
+      |> some
+
+    final
+      (acc : Option Std.Format)
+    : Tree γ ε → Std.Format
+      | leaf error =>
+        let (pref, andThen) :=
+          if let some acc := acc then (
+            pref.length |> String.repeat ' ',
+            fun fmt => acc ++ Std.Format.line ++ fmt
+          ) else (pref, id)
+        let leafFmt :=
+          (pref ++ (Eε.toStyledRepr error style prec).nest nestLevel)
+        andThen leafFmt
+      | node ctx tree tail =>
+        let (prefCtx, andThen) :=
+          if let some acc := acc then (
+            pref.length |> String.repeat ' ',
+            fun fmt => acc ++ Std.Format.line ++ fmt
+          ) else (pref, id)
+        let ctxFmt :=
+          prefCtx ++ Eγ.toStyledRepr ctx style prec
+        let treeFmt :=
+          tree.toStyledRepr style prec pref
+        let subFmt :=
+          (Std.Format.line ++ treeFmt)
+          |> tail.foldl
+            fun fmt tree =>
+              let treeFmt :=
+                tree.toStyledRepr style prec pref
+              fmt ++ Std.Format.line ++ treeFmt
+        (ctxFmt ++ subFmt.nest nestLevel)
+        |> andThen
 
   def reprPrec
     [Style.ToStyled γ]
@@ -179,7 +198,7 @@ instance instToStyledTree
 structure State (γ : Type u) (ε : Type v) : Type (max u v) where
 protected innerMk ::
   style : Style
-  current : List ε
+  current : List (State.Tree γ ε)
   trees : List (State.Tree γ ε)
 
 /-- Default value is the empty error state. -/
@@ -211,19 +230,22 @@ namespace State
   def hasErrors : Bool :=
     ¬ self.isOk
 
+  /-- Lists all error trees. -/
+  def errors : State.Tree γ ε |> List :=
+    List.revAppend
+      self.current
+      self.trees
+
   /-- Worst function name ever. -/
-  def errgister [Into ε' ε] (e : ε') : State γ ε :=
-    { self with current := conv e :: self.current }
+  def errgister [Into ε' (Tree γ ε)] (e : ε') : State γ ε :=
+    { self with
+      current :=
+        conv e :: self.current
+    }
 
-  /-- Alias for `errgister`. -/
-  abbrev bail :=
-    @errgister
-
-  /-- Produces `current` errors and trees as a list of trees. -/
-  def getAllTrees : List (Tree γ ε) :=
-    self.current
-    |>.map Tree.leaf
-    |> List.revAppend self.trees
+  -- /-- Alias for `errgister`. -/
+  -- abbrev bail :=
+  --   @errgister
 
   -- /-- Adds context to the inner (trees of) errors. -/
   -- def withContext [Into ε' ε] (getCtx' : Unit → ε') : State γ ε :=
@@ -250,7 +272,7 @@ namespace State
   --       res := { res with trees }
   --     res
 
-  /-- Adds context to the inner errors. -/
+  /-- Adds context to current errors. -/
   def withContext [Into γ' γ] (getCtx' : Unit → γ') : State γ ε :=
     match self.current with
     | [] => self
@@ -259,11 +281,32 @@ namespace State
         getCtx' ()
         |> conv
       let tree :=
-        Tree.node ctx (Tree.leaf hd) (tl.map Tree.leaf)
-      { self with
-        current := [],
-        trees := self.trees ++ [tree]
-      }
+        Tree.node ctx hd tl
+      { self with current := [tree] }
+
+  /-- Adds context to all errors. -/
+  def withGlobalContext [Into γ' γ] (getCtx' : Unit → γ') : State γ ε :=
+    match self.errors with
+    | [] =>  self
+    | hd :: tl =>
+      let ctx :=
+        getCtx' ()
+        |> conv
+      let tree :=
+        Tree.node ctx hd tl
+      ⟨self.style, [], [tree]⟩
+
+  /-- Puts `self.current` into `self.trees`. -/
+  def finalize : State γ ε :=
+    { self with current := [], trees := self.errors }
+
+  /-- Wraps current errors in some context and adds that to `self.trees`. -/
+  def finalizeWith
+    [Into γ' γ]
+    (getCtx' : Unit → γ')
+  : State γ ε :=
+    self.withContext getCtx'
+    |>.finalize
 end State
 
 
@@ -284,15 +327,17 @@ namespace State
     (pref : optParam String "- ")
     : Std.Format
   :=
-    match self.getAllTrees with
+    match self.errors with
     | [] => "no errors to report"
     | hd :: tl =>
+      -- let indent := 2
+        -- if tl.isEmpty then 0 else 2
       hd.toStyledRepr style prec pref
       |> tl.foldl
         fun fmt tree =>
           let treeFmt :=
             tree.toStyledRepr style prec pref
-          f!"{fmt}\n{treeFmt}"
+          fmt ++ Std.Format.line ++ treeFmt
 
   def reprPrec
     [Style.ToStyled γ]
@@ -368,7 +413,7 @@ namespace State
     | ok a => (a, self)
     | err e => (
       none,
-      { self with trees := self.trees ++ [conv e] }
+      { self with current := self.current ++ [conv e] }
     )
 
   /-- Same as `unwrap?` with a default value. -/
@@ -470,6 +515,21 @@ namespace ErrStateT
     failure
   )
 
+  /-- Runs itself and returns a result. -/
+  def run?
+    [Monad μ]
+    (x : ErrStateT γ ε μ α)
+    (s : State γ ε)
+  : μ (Err.Res (State.Tree γ ε |> List) α) :=
+    do
+      let (res, state) ←
+        ErrStateT.run x s
+      let res :=
+        match state.errors with
+        | [] => Err.Res.ok res
+        | errors => Err.Res.err errors
+      pure res
+
   /-- Runs and unwraps the error state, panicking if it contains any error. -/
   def run!
     [Style.ToStyled γ]
@@ -484,10 +544,22 @@ namespace ErrStateT
       state.unwrapSelf!
       pure res
 
+  /-- Worst function name ever. -/
+  def errgister
+    [Monad μ]
+    [Into ε' (State.Tree γ ε)]
+    (e : ε')
+  : ErrStateT γ ε μ Unit :=
+    do
+      let state ← get
+      state.errgister e
+      |> set
+
   /-- Registers the error from `res`, if any. -/
   def unwrap?
     [Monad μ]
-    (res : Res ε α)
+    [Into ε' (State.Tree γ ε)]
+    (res : Res ε' α)
   : ErrStateT γ ε μ (Option α) :=
     do
       let state ← get
@@ -496,7 +568,7 @@ namespace ErrStateT
       set state
       pure a?
 
-  /-- Adds some context to all current errors. -/
+  /-- Adds some context to current errors. -/
   def withContext
     [Into γ' γ]
     [Monad μ]
@@ -505,6 +577,37 @@ namespace ErrStateT
     do
       let state ← get
       state.withContext getCtx'
+      |> set
+
+  /-- Adds context to all errors. -/
+  def withGlobalContext
+    [Into γ' γ]
+    [Monad μ]
+    (getCtx' : Unit → γ')
+  : ErrStateT γ ε μ Unit :=
+    do
+      let state ← get
+      state.withGlobalContext getCtx'
+      |> set
+
+  /-- Puts `self.current` into `self.trees`. -/
+  def finalize
+    [Monad μ]
+  : ErrStateT γ ε μ Unit :=
+    do
+      let state ← get
+      state.finalize
+      |> set
+
+  /-- Wraps current errors in some context and adds that to `self.trees`. -/
+  def finalizeWith
+    [Monad μ]
+    [Into γ' γ]
+    (getCtx' : Unit → γ')
+  : ErrStateT γ ε μ Unit :=
+    do
+      let state ← get
+      state.finalizeWith getCtx'
       |> set
 end ErrStateT
 
