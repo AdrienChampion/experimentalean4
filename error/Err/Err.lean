@@ -23,7 +23,7 @@ namespace Err
   /-- Constructor. -/
   def mk (source : ε) : Err γ ε :=
     ⟨source, []⟩
-  
+
   /-- Adds some context to an error. -/
   def context [Into γ' γ] (err : γ') : Err γ ε :=
     { self with trace := conv err :: self.trace }

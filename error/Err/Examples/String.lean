@@ -33,7 +33,6 @@ example :
 
 
 
-@[simp]
 abbrev divAddDiv? (a b c d : Nat) : Res Nat :=
   do
     let d₁ ←
@@ -86,7 +85,7 @@ abbrev ErrState.divAddDiv? (a b c d : Nat) : ErrStateM (Option Nat) :=
       |>.withContext
         lazy_s!"cannot compute `d₂` as `{c}/{d}`"
       |> ErrStateT.unwrap?
-    
+
     ErrStateT.withContext
       lazy_s!"while computing `d₁` and `d₂`"
 
@@ -102,7 +101,7 @@ abbrev ErrState.divAddDiv? (a b c d : Nat) : ErrStateM (Option Nat) :=
           lazy_s!"something went wrong `/(T_T)\\`"
       ErrStateT.finalizeWith
           lazy_s!"error during `divAddDiv?`"
-      pure none
+      return none
 
 #eval
   ErrState.divAddDiv? 3 0 7 0

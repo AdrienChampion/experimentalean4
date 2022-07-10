@@ -120,6 +120,10 @@ end Style
 
 
 
+/-! ## Styling (pretty-printing) -/
+
+
+
 /-- Styles itself to `String` and `Std.Format` (multiline).
 
 A few instances are provided:
@@ -137,28 +141,53 @@ class Style.ToStyled (ε : Type u) where
       toStyled e s
       |> Std.Format.text
 
-instance instToStyledString : Style.ToStyled String where
-  toStyled s _ :=
-    s
-instance instToStyledRepr [Repr ε] : Style.ToStyled ε where
-  toStyled e _ :=
-    s!"{reprPrec e 1}"
-  toStyledRepr e _ prec :=
-    reprPrec e prec
-instance instToStyledToString [ToString ε] : Style.ToStyled ε where
-  toStyled s _ :=
-    toString s
-
-instance instToStringToStyled [Style.ToStyled ε] : ToString ε where
-  toString e :=
-    s!"{Style.ToStyled.toStyledRepr e default 1}"
-instance instReprToStyled [Style.ToStyled ε] : Repr ε where
-  reprPrec e prec :=
-    s!"{Style.ToStyled.toStyledRepr e default prec}"
-
 /-- Convenience `Style.ToStyled.toStyled` alias. -/
 abbrev Style.toStyled [S : Style.ToStyled α] :=
   S.toStyled
 /-- Convenience `Style.ToStyled.toStyledRepr` alias. -/
 abbrev Style.toStyledRepr [S : Style.ToStyled α] :=
   S.toStyledRepr
+
+
+
+/-! ### Automatic `ToStyled` instances -/
+
+--- `ToStyled String`.
+instance instToStyledString : Style.ToStyled String where
+  toStyled s _ :=
+    s
+
+--- `Repr → ToStyled`.
+instance instToStyledRepr [Repr ε] : Style.ToStyled ε where
+  toStyled e _ :=
+    s!"{reprPrec e 1}"
+  toStyledRepr e _ prec :=
+    reprPrec e prec
+
+--- Generates a `ToStyled` from a `Repr`.
+def Style.ToStyled.ofRepr :=
+  @instToStyledRepr
+
+--- `ToString → ToStyled`.
+instance instToStyledToString [ToString ε] : Style.ToStyled ε where
+  toStyled s _ :=
+    toString s
+
+--- Generates a `ToStyled` from a `ToString`.
+def Style.ToStyled.ofToString :=
+  @instToStyledToString
+
+
+
+/-! ### Convenience printing instances derived from `ToStyled`  -/
+
+
+
+--- `ToStyled → ToString`
+instance instToStringToStyled [Style.ToStyled ε] : ToString ε where
+  toString e :=
+    s!"{Style.ToStyled.toStyledRepr e default 1}"
+--- `ToStyled → Repr`
+instance instReprToStyled [Style.ToStyled ε] : Repr ε where
+  reprPrec e prec :=
+    s!"{Style.ToStyled.toStyledRepr e default prec}"
