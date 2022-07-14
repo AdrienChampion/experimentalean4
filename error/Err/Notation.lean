@@ -14,21 +14,31 @@ similar.
 
 
 
-syntax "inductiveError "
-  declId bracketedBinder* (
-    "| " ident
-      " : " term
-  )+
-  : command
+syntax
+  declModifiers
+  "inductiveError " declId bracketedBinder*
+  ("extends " withPosition(group(colGe term ","?)*))?
+  (":" term)?
+  (
+    ("|" ident optDeclSig)
+  )*
+: command
 
 macro_rules
   | `(
-    inductiveError $inductiveName
-      $[ | $variant : $resTy ]*
+    $mods:declModifiers
+    inductiveError $inductiveName:declId $params:bracketedBinder*
+    $[extends $[$ext:term $[,]?]*]?
+    $[: $ty:term]?
+    $[ | $variant:ident $sig?:optDeclSig ]*
   ) => `(
-    inductive $inductiveName
+    $mods:declModifiers
+    inductive $inductiveName:declId
+      $[$params:bracketedBinder]*
+      extends $[$[$ext:term],*]?
+      $[: $ty:term]?
       $[
-        | $variant:ident : $resTy
+        | $variant:ident $sig?:optDeclSig
       ]*
   )
 
