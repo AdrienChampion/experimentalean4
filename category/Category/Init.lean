@@ -41,7 +41,7 @@ where
   compose {α β γ} :
     Arrow β γ → Arrow α β → Arrow α γ
   --- Arrow composition is associative.
-  compose_assoc (f : Arrow γ δ) (g : Arrow β γ) (h : Arrow α β) :
+  compose_assoc {α β γ δ} (f : Arrow γ δ) (g : Arrow β γ) (h : Arrow α β) :
     aConcrete (compose f (compose g h))
     =
     aConcrete (compose (compose f g) h)
@@ -148,7 +148,7 @@ def Cat.three : Cat.Abstract three.Object three.Arrow where
 
 
 --- Dual of a category.
-instance Cat.Dual
+instance Cat.Abstract.dual
   (cat : Cat.Abstract Object Arrow)
 : Cat.Abstract Object (fun α β => Arrow β α) where
   compose f g :=
@@ -163,3 +163,42 @@ instance Cat.Dual
     cat.compose_id
   compose_id :=
     cat.id_compose
+
+--- Applying `Dual` two times yields the original.
+theorem Cat.Abstract.dual_dual
+  (cat : Cat.Abstract Object Arrow)
+: cat.dual.dual = cat :=
+  rfl
+
+
+
+instance Cat.Prod
+  (cat₁ : Cat O₁ OSem₁ A₁ ASem₁)
+  (cat₂ : Cat O₂ OSem₂ A₂ ASem₂)
+: Cat
+  (PProd O₁ O₂)
+  (fun ⟨o₁, o₂⟩ => OSem₁ o₁ × OSem₂ o₂)
+  (fun ⟨α₁, α₂⟩ ⟨β₁, β₂⟩ => PProd (A₁ α₁ β₁) (A₂ α₂ β₂))
+  (fun ⟨α₁, α₂⟩ ⟨β₁, β₂⟩ => PProd (ASem₁ α₁ β₁) (ASem₂ α₂ β₂))
+where
+  aConcrete a :=
+    ⟨cat₁.aConcrete a.1, cat₂.aConcrete a.2⟩
+  compose f g :=
+    ⟨cat₁.compose f.1 g.1, cat₂.compose f.2 g.2⟩
+  compose_assoc {α β γ δ} f g h :=
+    let res : _ ∧ _ :=
+      ⟨cat₁.compose_assoc f.1 g.1 h.1, cat₂.compose_assoc f.2 g.2 h.2⟩
+    by
+      simp [res]
+  id :=
+    ⟨cat₁.id, cat₂.id⟩
+  id_compose f :=
+    let res : _ ∧ _ :=
+      ⟨cat₁.id_compose f.1, cat₂.id_compose f.2⟩
+    by
+      simp [res]
+  compose_id f :=
+    let res : _ ∧ _ :=
+      ⟨cat₁.compose_id f.1, cat₂.compose_id f.2⟩
+    by
+      simp [res]
