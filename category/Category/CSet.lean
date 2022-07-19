@@ -73,10 +73,7 @@ namespace Cat.CSet
 
 end Cat.CSet
 
-instance Cat.CSet : Cat CSet.All where
-  Arrow :=
-    CSet.Fn
-
+instance Cat.CSet : Cat.Abstract CSet.All CSet.Fn where
   compose :=
     CSet.Fn.compose
   compose_assoc :=

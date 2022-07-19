@@ -42,3 +42,7 @@ namespace Cat.OhmAlg
   --     : apply (op.apply args legal) = o₂.ops
 
 end Cat.OhmAlg
+
+
+
+/-! ## TODO `Cat` instance -/

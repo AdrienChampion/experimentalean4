@@ -79,10 +79,7 @@ end Mon
 
 
 
-instance Cat.Mon : Cat Mon.All where
-  Arrow :=
-    Mon.Homo
-
+instance Cat.Mon : Cat.Abstract Mon.All Mon.Homo where
   compose :=
     Mon.Homo.compose
   compose_assoc :=
@@ -100,10 +97,9 @@ instance Cat.Mon : Cat Mon.All where
 structure Cat.SingleMon.Arrow (Elm : Sort e) where
   val : Elm
 
-instance Cat.SingleMon [mon : Monoid Elm] : Cat Unit where
-  Arrow _ _ :=
-    SingleMon.Arrow Elm
-
+instance Cat.SingleMon
+  [mon : Monoid Elm]
+: Cat.Abstract Unit (fun _ _ => SingleMon.Arrow Elm) where
   compose f g :=
     ⟨f.val * g.val⟩
   compose_assoc f g h :=

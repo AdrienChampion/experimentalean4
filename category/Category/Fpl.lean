@@ -23,107 +23,201 @@ import Category.Init
 
 namespace Fpl
 
-  inductive O
-  | int
-  | real
-  | bool
-  | unit
-  deriving Inhabited, BEq
+open Lean (Rat)
 
-  inductive Arrow : (_dom _cod : O) → Type
-    -- identity
-    | id : {α : O} → Arrow α α
 
-    -- `α → α` arrows
-    | unit : Arrow O.unit O.unit
-    | not : Arrow O.bool O.bool
-    | succᵢ : Arrow O.int O.int
-    | succᵣ : Arrow O.real O.real
 
-    -- plain composition, don't create this directly, use `Arrow.compose` instead
-    | comp {α β γ} : Arrow β γ → Arrow α β → Arrow α γ
+inductive Obj : Type 1
+  --- Naturals.
+  | N
+  --- Rationals.
+  | R
+  --- Bool.
+  | B
+  --- Unit.
+  | U
+deriving Inhabited, BEq
 
-    -- `int → bool`
-    | isZero : Arrow O.int O.bool
-    -- `unit → bool`
-    | tru : Arrow O.unit O.bool
-    | fls : Arrow O.unit O.bool
-    -- `unit → int`
-    | zero : Arrow O.unit O.int
-    -- `int → real`
-    | toReal : Arrow O.int O.real
+abbrev nat :=
+  Obj.N
+abbrev rat :=
+  Obj.R
+abbrev bool :=
+  Obj.B
+abbrev unit :=
+  Obj.U
 
-  def Arrow.compose -- {α β γ : O}
-    -- (f : Arrow β γ)
-    -- (g : Arrow α β)
-    -- : Arrow α γ
-    : {α β γ : O} → Arrow β γ → Arrow α β → Arrow α γ
-  -- :=
-    -- match (f, g) with
-    -- -- noops
-    -- | (_, unit) => f
-    -- | (id, _) => g
-    -- | (_, id) => f
-    -- -- compositions yielding existing arrows
-    -- | (not, not) => @id O.bool
-    -- | (not, tru) => fls
-    -- | (not, fls) => tru
-    -- | (isZero, zero) => tru
-    -- -- plain compositions, exhaustivity check timeouts
-    -- | (succᵢ, succᵢ) => comp succᵢ succᵢ
-    -- | (succᵣ, succᵣ) => comp succᵣ succᵣ
-    -- | (isZero, succᵢ) => comp isZero succᵢ
-    -- | (not, isZero) => comp not isZero
-    -- | (succᵢ, zero) => comp succᵢ zero
-    -- | (toReal, zero) => comp toReal zero
-    -- | (toReal, succᵢ) => comp toReal succᵢ
-    -- | (succᵣ, toReal) => comp succᵣ toReal
-    -- -- composition of compositions
-    -- | (comp not isZero, zero) => fls
-    -- | (comp f₁ f₂, g) => comp (comp f₁ f₂) g
-    -- | (f, comp g₁ g₂) => comp f (comp g₁ g₂)
+abbrev Obj.concrete : Obj → Type
+  | N => Nat
+  | R => Rat
+  | B => Bool
+  | U => Unit
 
-    | α, β, .(β), @id .(β), g => g
-    | α, .(α), γ, f, @id .(α) => f
-    | α, β, γ, comp f₁ f₂, g => comp f₁ (comp f₂ g)
-    | α, β, γ, f, g => comp f g
 
-  @[simp]
-  theorem Arrow.id_compose (g : Arrow α β) : Arrow.compose id g = g :=
-    by
-      simp only [compose]
-  @[simp]
-  theorem Arrow.compose_id (f : Arrow α β) : Arrow.compose f id = f :=
-    by
-      -- simp only [compose]
-      sorry
 
-  theorem Arrow.compose_assoc {α β γ δ : O}
-    (f : Arrow γ δ) (g : Arrow β γ) (h : Arrow α β)
-    : Arrow.compose f (Arrow.compose g h)
-    = Arrow.compose (Arrow.compose f g) h
-  := by
-    -- unfold compose
-    -- <;> cases f
-    -- <;> simp
-    -- <;>
-      sorry
+inductive Val
+  | N : Obj.N.concrete → Val
+  | R : Obj.R.concrete → Val
+  | B : Obj.B.concrete → Val
+  | U : Obj.U.concrete → Val
+deriving Inhabited, BEq
+
+abbrev Val.type : Val → Obj
+  | N _ => Obj.N
+  | R _ => Obj.R
+  | B _ => Obj.B
+  | U _ => Obj.U
+
+
+
+abbrev F (α β : Obj) : Type :=
+  α.concrete → β.concrete
+
+infix:min " ⇒ " => F
+
+
+
+abbrev F.id (α : Obj) : α ⇒ α :=
+  fun val => val
+
+
+
+abbrev F.tru : unit ⇒ bool :=
+  𝕂 true
+
+abbrev F.fls : unit ⇒ bool :=
+  𝕂 false
+
+abbrev F.not : bool ⇒ bool :=
+  fun b => !b
+
+
+
+abbrev F.isZero : nat ⇒ bool :=
+  fun
+    | 0 => true
+    | _ + 1 => false
+
+abbrev F.succᵢ : nat ⇒ nat :=
+  (· + 1)
+
+abbrev F.zero : unit ⇒ nat :=
+  𝕂 0
+
+abbrev F.toRat : nat ⇒ rat :=
+  (Lean.mkRat · 1)
+
+
+
+abbrev F.succᵣ : rat ⇒ rat :=
+  (· + 1)
+
+
+
+@[reducible]
+inductive A : Obj → Obj → Type 1
+  | id : {γ : Obj} → A γ γ
+  | tru : A unit bool
+  | fls : A unit bool
+  | not : A bool bool
+  | isZero : A nat bool
+  | succᵢ : A nat nat
+  | zero : A unit nat
+  | toRat : A nat rat
+  | succᵣ : A rat rat
+  | comp : (A β γ) → (A α β) → A α γ
+
+abbrev A.concrete : A α β → (α ⇒ β)
+  | id => F.id α
+  | tru => F.tru
+  | fls => F.fls
+  | not => F.not
+  | isZero => F.isZero
+  | succᵢ => F.succᵢ
+  | zero => F.zero
+  | toRat => F.toRat
+  | succᵣ => F.succᵣ
+  | comp f g => f.concrete ∘ g.concrete
+abbrev A.χ :=
+  @A.concrete
+
+
+
+theorem A.concrete_comp
+  (f : A β γ)
+  (g : A α β)
+: f.χ ∘ g.χ = (f.comp g).χ
+:=
+  rfl
+
+theorem A.concrete_comp_assoc
+  (f : A γ δ)
+  (g : A β γ)
+  (h : A α β)
+: (f.comp (g.comp h)).χ = ((f.comp g).comp h).χ
+:=
+  rfl
+
+
+
+theorem A.id_comp
+  (f : A α β)
+: (id.comp f).χ = f.χ
+:=
+  rfl
+theorem A.comp_id
+  (f : A α β)
+: (f.comp id).χ = f.χ
+:=
+  rfl
+
+
+
+theorem A.comp_not_not
+: (not.comp not).χ = id.χ
+:=
+  funext (by simp)
+theorem A.comp_not_tru
+: (not.comp tru).χ = fls.χ
+:=
+  rfl
+theorem A.comp_not_fls
+: (not.comp fls).χ = tru.χ
+:=
+  rfl
+
+
+
+theorem A.comp_isZero_zero
+: (isZero.comp zero).χ = tru.χ
+:=
+  rfl
+
+theorem A.comp_isZero_succᵢ
+: (isZero.comp (succᵢ.comp f)).χ = fls.χ
+:=
+  rfl
+
+
+
 end Fpl
 
 
+/-! ## FPL is a category -/
 
-def Cat.Fpl : Cat Fpl.O where
-  Arrow :=
-    Fpl.Arrow
+def Cat.Fpl : Cat Fpl.Obj Fpl.Obj.concrete Fpl.A Fpl.F where
+  aConcrete :=
+    Fpl.A.concrete
 
   compose :=
-    Fpl.Arrow.compose
+    Fpl.A.comp
   compose_assoc :=
-    Fpl.Arrow.compose_assoc
+    Fpl.A.concrete_comp_assoc
 
   id :=
-    Fpl.Arrow.id
+    Fpl.A.id
   id_compose :=
-    Fpl.Arrow.id_compose
+    Fpl.A.id_comp
   compose_id :=
-    Fpl.Arrow.compose_id
+    Fpl.A.comp_id
+

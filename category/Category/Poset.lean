@@ -71,10 +71,7 @@ end Cat.Poset
 
 
 
-instance Cat.Poset : Cat Poset.All where
-  Arrow :=
-    Poset.ProperFn
-
+instance Cat.Poset : Cat.Abstract Poset.All Poset.ProperFn where
   compose :=
     Poset.ProperFn.compose
   compose_assoc :=
@@ -94,10 +91,9 @@ instance Cat.Poset : Cat Poset.All where
 --- There is an array between `α` and `β` iff `α ≤ β`.
 ---
 --- Note that this allows to see `Cat.Poset` as a category of categories.
-instance Cat.PosetPairs [ord : PartialOrder Object] : Cat Object where
-  Arrow e₁ e₂ :=
-    e₁ ≤ e₂
-
+instance Cat.PosetPairs
+  [ord : PartialOrder Object]
+: Cat.Abstract Object (fun e₁ e₂ => e₁ ≤ e₂) where
   compose {α β γ} f g :=
     ord.le_trans α β γ g f
   compose_assoc f g h :=
