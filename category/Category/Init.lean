@@ -33,13 +33,20 @@ class Cat
   (Arrow : Object → Object → Sort a)
   (ASem : outParam (Object → Object → Sort asem))
 where
+  --- Arrow composition.
+  compose {α β γ} :
+    Arrow β γ → Arrow α β → Arrow α γ
+
   --- Arrow concretization.
   aConcrete :
     (A : Arrow α β) → ASem α β
 
-  --- Arrow composition.
-  compose {α β γ} :
-    Arrow β γ → Arrow α β → Arrow α γ
+  -- aConcrete_distributive
+  --   {α β γ}
+  --   (f : Arrow β γ)
+  --   (g : Arrow α β)
+  -- : aConcrete (compose f g) = compose (aConcrete f) (aConcrete g)
+
   --- Arrow composition is associative.
   compose_assoc {α β γ δ} (f : Arrow γ δ) (g : Arrow β γ) (h : Arrow α β) :
     aConcrete (compose f (compose g h))
@@ -202,3 +209,124 @@ where
       ⟨cat₁.compose_id f.1, cat₂.compose_id f.2⟩
     by
       simp [res]
+
+
+
+namespace Cat.UpArrow
+  universe
+    o osem
+    a asem
+
+  variable
+
+    {Object : Sort o}
+    {ASem : Object → Object → Sort asem}
+
+    (A : Object → Object → Sort a)
+
+
+
+  inductive Obj
+    (A : Object → Object → Sort a)
+  : Sort (max 1 o a)
+    | mk : A α β → Obj A
+
+  def Obj.dom : Obj A → Object
+    | @Obj.mk _ _ α _β _ =>
+      α
+  def Obj.cod : Obj A → Object
+    | @Obj.mk _ _ _α β _ =>
+      β
+  def Obj.get : Obj A → ((α : Object) ×' (β : Object) ×' A α β)
+    | @Obj.mk _ _ α β a =>
+      ⟨α, β, a⟩
+  def Obj.getFun : (self : Obj A) → A self.dom self.cod
+    | @Obj.mk _ _ _α _β a =>
+      a
+
+  def Obj.Concrete
+    (ASem : Object → Object → Sort asem)
+    (self : Obj A)
+  : Sort asem :=
+    ASem self.dom self.cod
+
+
+
+  variable
+    {OSem : Object → Sort osem}
+    (cat : Cat Object OSem A ASem)
+
+  structure Arrow
+    (α β : Obj A)
+  : Sort (max 1 o a)
+  where
+    a : A α.dom β.dom
+    b : A α.cod β.cod
+    legal :
+      let f :=
+        α.getFun
+      let f' :=
+        β.getFun
+      cat.compose f' a
+      =
+      cat.compose b f
+
+  def Arrow.Concrete
+    (ASem : Object → Object → Sort asem)
+    (α β : Obj A)
+  : Sort asem :=
+    ASem α.dom β.cod
+
+  def Arrow.concrete
+    (self : Arrow A (cat := cat) α β)
+  : ASem α.dom β.cod :=
+    let a :=
+      self.a (cat := cat)
+    let f' :=
+      β.getFun
+    cat.compose f' a
+    |> cat.aConcrete
+
+  def Arrow.compose
+    {α β γ}
+    (f : Arrow A cat β γ)
+    (g : Arrow A cat α β)
+  : Arrow A cat α γ where
+    a :=
+      cat.compose f.a g.a
+    b :=
+      cat.compose f.b g.b
+    legal :=
+      let legal_f := f.legal
+      let legal_g := g.legal
+      by
+        simp at legal_f
+        simp at legal_g
+        simp
+        sorry
+end Cat.UpArrow
+
+
+/-- Given `cat`, builds `cat⟶` (upperscript arrow, dunno how to unicode it). -/
+instance Cat.UpArrow
+  [cat : Cat O OSem A ASem]
+: Cat
+  (UpArrow.Obj A)
+  (UpArrow.Obj.Concrete A ASem)
+  (UpArrow.Arrow A cat)
+  (UpArrow.Arrow.Concrete A ASem)
+where
+  aConcrete :=
+    UpArrow.Arrow.concrete A cat
+
+  compose :=
+    by sorry
+  compose_assoc :=
+    by sorry
+
+  id :=
+    by sorry
+  id_compose :=
+    by sorry
+  compose_id :=
+    by sorry
