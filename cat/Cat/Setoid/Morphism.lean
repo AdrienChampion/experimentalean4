@@ -99,26 +99,26 @@ section Morph
 
     /-- Give access to `≈` (`\~~`) equivalence notation. -/
     instance instHasEquivMorph
-    : HasEquiv (Morph α β) where
+    : HasEquiv (α ⇒ β) where
       Equiv :=
         Morph.equiv
 
     /-- `Morph.equiv` is reflexive. -/
     def Morph.equiv.refl
-      (m : Morph α β)
+      (m : α ⇒ β)
     : m ≈ m :=
       (m.map · |> β.refl)
 
     /-- `Morph.equiv` is symmetric. -/
     def Morph.equiv.symm
-      {f g : Morph α β}
+      {f g : α ⇒ β}
       (h : f ≈ g)
     : g ≈ f :=
       (h · |> β.symm)
 
     /-- `Morph.equiv` is transitive. -/
     def Morph.equiv.trans
-      {f g h : Morph α β}
+      {f g h : α ⇒ β}
       (eqFG : f ≈ g)
       (eqGH : g ≈ h)
     : f ≈ h :=
@@ -129,6 +129,16 @@ section Morph
     def Morph.equiv.iseqv
     : @Equivalence (α ⇒ β) Morph.equiv :=
       ⟨refl, symm, trans⟩
+
+
+
+    instance instTransMorphEquiv
+      {α β : Setoid}
+    : let I := @instHasEquivMorph α β
+      Trans I.Equiv I.Equiv I.Equiv
+    where
+      trans :=
+        Morph.equiv.trans
 
   end equiv
 

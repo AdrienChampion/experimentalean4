@@ -67,10 +67,15 @@ abbrev Fam.Cat.compose'
 -- : |ℂ.Hom β γ| → |ℂ.Hom α β| → |ℂ.Hom α γ| :=
 --   ⟦@Cat.kompose ℂ⟧
 
-theorem Fam.Cat.compose_congr_left
-  (ℂ : Cat)
+
+
+/-! ## Sanity-checking congruence properties over composition -/
+
+/-- Left-congruence. -/
+theorem Fam.Cat.compose.congr_left
+  {ℂ : Cat}
   {α β γ : ℂ.Obj}
-  (f f' : |ℂ.Hom β γ|)
+  {f f' : |ℂ.Hom β γ|}
   (g : |ℂ.Hom α β|)
 : f ≈ f' → ℂ.compose f g ≈ ℂ.compose f' g :=
   let k :=
@@ -79,14 +84,32 @@ theorem Fam.Cat.compose_congr_left
     intro h_f
     apply k.proper h_f
 
-theorem Fam.Cat.compose_congr_right
-  (ℂ : Cat)
+/-- Right-congruence. -/
+theorem Fam.Cat.compose.congr_right
+  {ℂ : Cat}
   {α β γ : ℂ.Obj}
   (f : |ℂ.Hom β γ|)
-  (g g' : |ℂ.Hom α β|)
+  {g g' : |ℂ.Hom α β|}
 : g ≈ g' → ℂ.compose f g ≈ ℂ.compose f g' :=
   let k :=
     ℂ.compose' α β γ f
   by
     intro h_g
     apply k.proper h_g
+
+/-- Composition congruence. -/
+theorem Fam.Cat.compose.congr
+  {ℂ : Cat}
+  {α β γ : ℂ.Obj}
+  {f f' : |ℂ.Hom β γ|}
+  {g g' : |ℂ.Hom α β|}
+: f ≈ f' → g ≈ g' → ℂ.compose f g ≈ ℂ.compose f' g' :=
+  fun h_f h_g =>
+    let left :=
+      congr_left g h_f
+    let right :=
+      congr_right f' h_g
+    -- retrieve target setoid
+    ℂ.Hom α γ
+    -- use target setoid's transitivity on equivalence
+    |>.trans left right
