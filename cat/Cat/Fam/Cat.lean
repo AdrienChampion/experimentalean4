@@ -77,7 +77,6 @@ theorem Fam.Cat.compose_congr_left
     ℂ.compose' α β γ
   by
     intro h_f
-    simp only [compose, Morph.kompose, Morph.app2]
     apply k.proper h_f
 
 theorem Fam.Cat.compose_congr_right
@@ -90,5 +89,4 @@ theorem Fam.Cat.compose_congr_right
     ℂ.compose' α β γ f
   by
     intro h_g
-    simp only [compose, Morph.kompose, Morph.app2]
     apply k.proper h_g
