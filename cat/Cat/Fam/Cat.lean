@@ -11,7 +11,8 @@ namespace Cat
 /-- A simple category, basis for categories with families. -/
 structure Fam.Cat where
   /-- Type of the objects of the category. -/
-  Obj : Sort o
+  Obj
+  : Sort o
 
   /-- This returns a `Setoid.Erased` to allow dependent, arbitrary carriers. -/
   Hom
@@ -60,6 +61,13 @@ abbrev Fam.Cat.compose'
 : |Hom ℂ β γ ⇛ Hom ℂ α β ⇛ Hom ℂ α γ| :=
   @Cat.compose ℂ α β γ
 
+/-- Underlying actual composition function. -/
+abbrev Fam.Cat.kompose
+  (ℂ : Cat)
+  {α β γ : ℂ.Obj}
+: |ℂ.Hom β γ| → |ℂ.Hom α β| → |ℂ.Hom α γ| :=
+  ⟦ℂ.compose'⟧
+
 -- /-- Value-level arrow composition. -/
 -- abbrev Fam.Cat.compose
 --   (ℂ : Cat)
@@ -69,7 +77,7 @@ abbrev Fam.Cat.compose'
 
 
 
-/-! ## Sanity-checking congruence properties over composition -/
+/-! ## Congruence properties over composition -/
 
 /-- Left-congruence. -/
 theorem Fam.Cat.compose.congr_left
@@ -97,7 +105,7 @@ theorem Fam.Cat.compose.congr_right
     intro h_g
     apply k.proper h_g
 
-/-- Composition congruence. -/
+/-- Congruence on both sides. -/
 theorem Fam.Cat.compose.congr
   {ℂ : Cat}
   {α β γ : ℂ.Obj}
