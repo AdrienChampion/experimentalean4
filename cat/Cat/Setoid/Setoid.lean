@@ -43,13 +43,13 @@ macro "| " t:term " |" : term =>
 --     Setoid.Carrier
 
 /-- Bring `S.instSetoid : Zetoid |S|` in scope whenever we handle `|S|`. -/
-instance instSetoidSetoidErased
+instance instZetoidSetoid
   {S : Setoid}
 : Zetoid |S| :=
   S.instZetoid
 
 /-- Give access to `α ≈ β` notation (`\~~`). -/
-instance instHasEquivSetoidErased
+instance instHasEquivSetoid
   (S : Setoid)
 : HasEquiv |S| :=
   @instHasEquiv S.Carrier S.instZetoid
@@ -92,3 +92,11 @@ namespace Setoid
   : a ≈ b → b ≈ c → a ≈ c:=
     self.instZetoid.trans
 end Setoid
+
+instance instTransSetoidRel
+  {self : Setoid}
+: let eqv := (instHasEquivSetoid self).Equiv
+  Trans eqv eqv eqv
+where
+  trans :=
+    self.trans

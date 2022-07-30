@@ -79,6 +79,23 @@ abbrev Fam.Cat.kompose
 
 /-! ## Congruence properties over composition -/
 
+instance instCongrCatCompose
+  {ℂ : Fam.Cat}
+  {α β γ : ℂ.Obj}
+: Congr |ℂ.Hom β γ| |ℂ.Hom α β| |ℂ.Hom α γ| ℂ.kompose where
+  left {f f'} g :=
+    let k :=
+      ℂ.compose' α β γ
+    by
+      intro h_f
+      apply k.proper h_f
+  right f {g g'} :=
+    let k :=
+      ℂ.compose' α β γ f
+    by
+      intro h_g
+      apply k.proper h_g
+
 /-- Left-congruence. -/
 theorem Fam.Cat.compose.congr_left
   {ℂ : Cat}
@@ -121,3 +138,44 @@ theorem Fam.Cat.compose.congr
     ℂ.Hom α γ
     -- use target setoid's transitivity on equivalence
     |>.trans left right
+
+
+
+/-! ## `Cat`egory dual -/
+section dual
+  variable
+    {ℂ : Cat}
+
+  /-- Dual arrow. -/
+  abbrev Fam.Cat.DualHom
+    (α β : ℂ.Obj)
+  : Setoid :=
+    ℂ.Hom β α
+
+  /-- Dual composition. -/
+  abbrev Fam.Cat.dualCompose
+    {α β γ : ℂ.Obj}
+    (f : |ℂ.DualHom β γ|)
+    (g : |ℂ.DualHom α β|)
+  : |ℂ.DualHom α γ| :=
+    ℂ.compose g f
+
+  theorem Fam.Cat.dualCompose.congr_left
+    {α β γ : ℂ.Obj}
+    {f f' : |ℂ.DualHom β γ|}
+    (g : |ℂ.DualHom α β|)
+  : f ≈ f' → ℂ.dualCompose f g ≈ ℂ.dualCompose f' g :=
+    by
+      simp
+      apply Cat.compose.congr_right
+
+  theorem Fam.Cat.dualCompose.congr_right
+    {α β γ : ℂ.Obj}
+    (f : |ℂ.DualHom β γ|)
+    {g g' : |ℂ.DualHom α β|}
+  : g ≈ g' → ℂ.dualCompose f g ≈ ℂ.dualCompose f g' :=
+    by
+      simp
+      apply Cat.compose.congr_left
+
+end dual
