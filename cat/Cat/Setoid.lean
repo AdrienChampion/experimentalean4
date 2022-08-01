@@ -1,2 +1,2 @@
 import Cat.Setoid.Setoid
-import Cat.Setoid.Morphism
+import Cat.Setoid.Morph
