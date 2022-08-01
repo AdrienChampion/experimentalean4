@@ -50,7 +50,7 @@ structure Fam.Cat where
   /-- `id` is a right-identity for `compose`. -/
   compose_id
     (f : |Hom α β|)
-  : compose f id = f
+  : compose f id ≈ f
 
 
 
@@ -96,86 +96,7 @@ instance instCongrCatCompose
       intro h_g
       apply k.proper h_g
 
-/-- Left-congruence. -/
-theorem Fam.Cat.compose.congr_left
-  {ℂ : Cat}
-  {α β γ : ℂ.Obj}
-  {f f' : |ℂ.Hom β γ|}
-  (g : |ℂ.Hom α β|)
-: f ≈ f' → ℂ.compose f g ≈ ℂ.compose f' g :=
-  let k :=
-    ℂ.compose' α β γ
-  by
-    intro h_f
-    apply k.proper h_f
-
-/-- Right-congruence. -/
-theorem Fam.Cat.compose.congr_right
-  {ℂ : Cat}
-  {α β γ : ℂ.Obj}
-  (f : |ℂ.Hom β γ|)
-  {g g' : |ℂ.Hom α β|}
-: g ≈ g' → ℂ.compose f g ≈ ℂ.compose f g' :=
-  let k :=
-    ℂ.compose' α β γ f
-  by
-    intro h_g
-    apply k.proper h_g
-
-/-- Congruence on both sides. -/
-theorem Fam.Cat.compose.congr
-  {ℂ : Cat}
-  {α β γ : ℂ.Obj}
-  {f f' : |ℂ.Hom β γ|}
-  {g g' : |ℂ.Hom α β|}
-: f ≈ f' → g ≈ g' → ℂ.compose f g ≈ ℂ.compose f' g' :=
-  fun h_f h_g =>
-    let left :=
-      congr_left g h_f
-    let right :=
-      congr_right f' h_g
-    -- retrieve target setoid
-    ℂ.Hom α γ
-    -- use target setoid's transitivity on equivalence
-    |>.trans left right
-
-
-
-/-! ## `Cat`egory dual -/
-section dual
-  variable
-    {ℂ : Cat}
-
-  /-- Dual arrow. -/
-  abbrev Fam.Cat.DualHom
-    (α β : ℂ.Obj)
-  : Setoid :=
-    ℂ.Hom β α
-
-  /-- Dual composition. -/
-  abbrev Fam.Cat.dualCompose
-    {α β γ : ℂ.Obj}
-    (f : |ℂ.DualHom β γ|)
-    (g : |ℂ.DualHom α β|)
-  : |ℂ.DualHom α γ| :=
-    ℂ.compose g f
-
-  theorem Fam.Cat.dualCompose.congr_left
-    {α β γ : ℂ.Obj}
-    {f f' : |ℂ.DualHom β γ|}
-    (g : |ℂ.DualHom α β|)
-  : f ≈ f' → ℂ.dualCompose f g ≈ ℂ.dualCompose f' g :=
-    by
-      simp
-      apply Cat.compose.congr_right
-
-  theorem Fam.Cat.dualCompose.congr_right
-    {α β γ : ℂ.Obj}
-    (f : |ℂ.DualHom β γ|)
-    {g g' : |ℂ.DualHom α β|}
-  : g ≈ g' → ℂ.dualCompose f g ≈ ℂ.dualCompose f g' :=
-    by
-      simp
-      apply Cat.compose.congr_left
-
-end dual
+def Fam.Cat.congr
+  (ℂ : Cat)
+:=
+  @instCongrCatCompose ℂ

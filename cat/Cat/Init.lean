@@ -38,7 +38,7 @@ section congr
     : g ≈ g'
     → compose f g ≈ compose f g'
 
-  theorem Congr.congr
+  theorem Congr.both
     [instα : HasEquiv α]
     [instβ : HasEquiv β]
     [instγ : HasEquiv γ]
