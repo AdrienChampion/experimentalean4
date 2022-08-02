@@ -17,7 +17,7 @@ abbrev Fam.Cat.dualHom
 : Setoid :=
   ℂ.Hom β α
 
-/-- Dual composition. -/
+/-- Dual composition (actual function). -/
 abbrev Fam.Cat.dualKompose
   {α β γ : ℂ.Obj}
   (f : |ℂ.dualHom β γ|)
@@ -81,16 +81,20 @@ abbrev Fam.Cat.dualKompose_id
 : ℂ.dualKompose f ℂ.dualId ≈ f :=
   ℂ.id_compose f
 
--- def Fam.Cat.Dual
--- : Cat where
---   Obj :=
---     ℂ.Obj
---   Hom :=
---     ℂ.dualHom
---   compose {α β γ} f g :=
---     let comp :=
---       ℂ.dualComp
---     let blah :=
---       comp.toMorph f
---     blah
+def Fam.Cat.Dual
+: Cat where
+  Obj :=
+    ℂ.Obj
+  Hom :=
+    ℂ.dualHom
+  compose :=
+    ℂ.dualComp.toMorph2
+  compose_assoc :=
+    ℂ.dualKompose_assoc
+  id :=
+    ℂ.dualId
+  id_compose :=
+    ℂ.id_dualKompose
+  compose_id :=
+    ℂ.dualKompose_id
 
