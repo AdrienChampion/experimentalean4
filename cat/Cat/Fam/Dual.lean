@@ -98,3 +98,9 @@ def Fam.Cat.Dual
   compose_id :=
     ℂ.dualKompose_id
 
+/-- Double dualification is identity. -/
+@[simp]
+theorem Fam.Cat.idemDual
+  (ℂ : Cat)
+: ℂ.Dual.Dual = ℂ :=
+  rfl

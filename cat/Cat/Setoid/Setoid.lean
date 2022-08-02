@@ -76,7 +76,7 @@ namespace Setoid
   /-! ### Lift stuff from inner `Zetoid` instance -/
 
   variable
-    (self : Setoid)
+    {self : Setoid}
 
   def r :=
     self.instZetoid.r
