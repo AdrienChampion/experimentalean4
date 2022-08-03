@@ -11,7 +11,7 @@ namespace Cat
 /-! ## Dual notions
 
 Proposition `p₂` is *the dual* of proposition `p₁` if the fact that `p₁` holds in `ℂ` is
-**equivalent** to `p₂` holding in `ℂ.Dual`. 
+**equivalent** to `p₂` holding in `ℂᵒᵖ`. 
 
 For instance, an initial object in a category is terminal in the category's dual. So *initial* and
 *terminal* are each other's dual.
@@ -24,7 +24,7 @@ section dual_stuff
   instance Fam.Cat.Initial.dual
     (α : ℂ.Obj)
     [instα : Initial α]
-  : @Terminal ℂ.Dual α where
+  : @Terminal ℂᵒᵖ α where
     arrow :=
       instα.arrow
     unique :=
@@ -34,7 +34,7 @@ section dual_stuff
   instance Fam.Cat.Teminal.dual
     (α : ℂ.Obj)
     [instα : Terminal α]
-  : @Initial ℂ.Dual α where
+  : @Initial ℂᵒᵖ α where
     arrow :=
       instα.arrow
     unique :=
@@ -44,14 +44,14 @@ section dual_stuff
   instance Fam.Cat.Epic.dual
     (f : |ℂ.Hom β γ|)
     [inst : ℂ.Epic f]
-  : ℂ.Dual.Monic f :=
+  : ℂᵒᵖ.Monic f :=
     ⟨inst.law⟩
 
   /-- "Epic morphisms" are the dual of "monic morphisms". -/
   instance Fam.Cat.Mono.dual
     (f : |ℂ.Hom β γ|)
     [inst : ℂ.Monic f]
-  : ℂ.Dual.Epic f :=
+  : ℂᵒᵖ.Epic f :=
     ⟨inst.law⟩
 
   /-- The notion of isomorphism is its own dual. -/
@@ -59,7 +59,7 @@ section dual_stuff
     {α β : ℂ.Obj}
     (f : |ℂ.Hom α β|)
     [inst : ℂ.Iso f]
-  : ℂ.Dual.Iso (ℂ.isoInv f) where
+  : ℂᵒᵖ.Iso (ℂ.isoInv f) where
     inv :=
       f
     law_left :=
@@ -71,7 +71,7 @@ section dual_stuff
   instance Fam.Cat.IsoObj.dual
     (α β : ℂ.Obj)
     [inst : α ≅ β]
-  : @IsoObj ℂ.Dual α β :=
+  : @IsoObj ℂᵒᵖ α β :=
     ⟨_, Iso.dual inst.iso⟩
 
 
@@ -89,10 +89,10 @@ section dual_stuff
     let fInv : |ℂ.Hom β α| :=
       instβ.arrow
     let id_left :=
-      ℂ.compose f fInv
+      f ⊚ fInv
       |> Fam.Cat.Initial.equivId
     let id_right :=
-      ℂ.compose fInv f
+      fInv ⊚ f
       |> Fam.Cat.Initial.equivId
     let iso : Iso f :=
       ⟨fInv, id_left, id_right⟩
@@ -105,7 +105,7 @@ section dual_stuff
     [Terminal β]
   : α ≅ β :=
     -- reuse `IsoObj.ofInitial` in `ℂ.Dual`
-    IsoObj.ofInitial (ℂ := ℂ.Dual) α β
+    IsoObj.ofInitial (ℂ := ℂᵒᵖ) α β
     |>.dual
 
 end dual_stuff

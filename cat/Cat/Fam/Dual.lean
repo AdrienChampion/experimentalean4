@@ -17,7 +17,7 @@ abbrev Fam.Cat.dualHom
 : Setoid :=
   ℂ.Hom β α
 
-/-- Dual composition (actual function). -/
+/-- Dual composition: actual, non-setoid function. -/
 abbrev Fam.Cat.dualKompose
   {α β γ : ℂ.Obj}
   (f : |ℂ.dualHom β γ|)
@@ -25,6 +25,7 @@ abbrev Fam.Cat.dualKompose
 : |ℂ.dualHom α γ| :=
   ℂ.compose g f
 
+/-- Dual composition is associative. -/
 @[simp]
 abbrev Fam.Cat.dualKompose_assoc
   {α β γ δ : ℂ.Obj}
@@ -38,6 +39,7 @@ abbrev Fam.Cat.dualKompose_assoc
   ℂ.compose_assoc h g f
   |> (ℂ.Hom δ α).symm
 
+/-- Dual composition respects congruence laws. -/
 @[simp]
 abbrev Fam.Cat.dualCongr
   {α β γ : ℂ.Obj}
@@ -47,6 +49,7 @@ abbrev Fam.Cat.dualCongr
   right f {_g _g'} h_g :=
     ℂ.congr.left f h_g
 
+/-- `Comp` structure for dual composition. -/
 @[simp]
 abbrev Fam.Cat.dualComp
 : Comp ℂ.Obj ℂ.dualHom where
@@ -55,18 +58,21 @@ abbrev Fam.Cat.dualComp
   congr :=
     ℂ.dualCongr
 
+/-- Identity of the dual of a category. -/
 @[simp]
 abbrev Fam.Cat.dualId
   {α : ℂ.Obj}
 : |ℂ.dualHom α α| :=
   ℂ.id
 
+/-- Identity of the dual of a category, type-explicit version. -/
 @[simp]
 abbrev Fam.Cat.dualId'
   (α : ℂ.Obj)
 : |ℂ.dualHom α α| :=
   ℂ.id
 
+/-- Left-composition by `dualId` is identity. -/
 @[simp]
 abbrev Fam.Cat.id_dualKompose
   {α β : ℂ.Obj}
@@ -74,6 +80,7 @@ abbrev Fam.Cat.id_dualKompose
 : ℂ.dualKompose ℂ.dualId f ≈ f :=
   ℂ.compose_id f
 
+/-- Right-composition by `dualId` is identity. -/
 @[simp]
 abbrev Fam.Cat.dualKompose_id
   {α β : ℂ.Obj}
@@ -81,6 +88,7 @@ abbrev Fam.Cat.dualKompose_id
 : ℂ.dualKompose f ℂ.dualId ≈ f :=
   ℂ.id_compose f
 
+/-- Dual of a category `ℂᵒᵖ` (`\op`). -/
 def Fam.Cat.Dual
 : Cat where
   Obj :=
@@ -98,9 +106,14 @@ def Fam.Cat.Dual
   compose_id :=
     ℂ.dualKompose_id
 
+postfix:max "ᵒᵖ" =>
+  Fam.Cat.Dual
+
+
+
 /-- Double dualification is identity. -/
 @[simp]
 theorem Fam.Cat.idemDual
   (ℂ : Cat)
-: ℂ.Dual.Dual = ℂ :=
+: (ℂᵒᵖ)ᵒᵖ = ℂ :=
   rfl

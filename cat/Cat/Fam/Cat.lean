@@ -19,7 +19,7 @@ structure Fam.Cat where
   : Obj → Obj → Setoid
 
 
-  /-- Type-level arrow composition.
+  /-- Type-level arrow composition `f ⊚ g` (`\oo`).
 
   **NB:** `|dom ⇛ cod|` coerces to `|dom| → |cod|`. This is why we can directly write `compose f g`
   without having to perform conversions all over the place.
@@ -58,22 +58,20 @@ structure Fam.Cat where
 abbrev Fam.Cat.compose'
   (ℂ : Cat)
   (α β γ : ℂ.Obj)
-: |Hom ℂ β γ ⇛ Hom ℂ α β ⇛ Hom ℂ α γ| :=
+: |ℂ.Hom β γ ⇛ ℂ.Hom α β ⇛ ℂ.Hom α γ| :=
   @Cat.compose ℂ α β γ
 
 /-- Underlying actual composition function. -/
 abbrev Fam.Cat.kompose
-  (ℂ : Cat)
+  {ℂ : Cat}
   {α β γ : ℂ.Obj}
 : |ℂ.Hom β γ| → |ℂ.Hom α β| → |ℂ.Hom α γ| :=
   ⟦ℂ.compose'⟧
 
--- /-- Value-level arrow composition. -/
--- abbrev Fam.Cat.compose
---   (ℂ : Cat)
---   {α β γ : ℂ.Obj}
--- : |ℂ.Hom β γ| → |ℂ.Hom α β| → |ℂ.Hom α γ| :=
---   ⟦@Cat.kompose ℂ⟧
+
+
+infixr:100 " ⊚ " =>
+  Fam.Cat.kompose
 
 
 

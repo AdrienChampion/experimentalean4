@@ -26,7 +26,7 @@ section epi
   : Prop :=
     {γ : ℂ.Obj}
     → (g₁ g₂ : |ℂ.Hom β γ|)
-    → ℂ.compose g₁ f ≈ ℂ.compose g₂ f
+    → (g₁ ⊚ f) ≈ (g₂ ⊚ f)
     → g₁ ≈ g₂
 
   class Fam.Cat.Epic
@@ -63,7 +63,7 @@ section monic
   : Prop :=
     {α : ℂ.Obj}
     → (g₁ g₂ : |ℂ.Hom α β|)
-    → ℂ.compose f g₁ ≈ ℂ.compose f g₂
+    → f ⊚ g₁ ≈ f ⊚ g₂
     → g₁ ≈ g₂
 
   class Fam.Cat.Monic
@@ -96,7 +96,7 @@ section iso
   --   (f : |ℂ.Hom α β|)
   --   (g : |ℂ.Hom β α|)
   -- : Prop :=
-  --   ℂ.compose g f ≈ ℂ.id
+  --   g ⊚ f ≈ ℂ.id
 
   class Fam.Cat.Iso
     (f : |ℂ.Hom α β|)
@@ -104,9 +104,9 @@ section iso
     inv :
       |ℂ.Hom β α|
     law_left :
-      ℂ.compose f inv ≈ ℂ.id
+      f ⊚ inv ≈ ℂ.id
     law_right :
-      ℂ.compose inv f ≈ ℂ.id
+      inv ⊚ f ≈ ℂ.id
 
   abbrev Fam.Cat.isoInv
     (f : |ℂ.Hom α β|)
