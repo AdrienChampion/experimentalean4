@@ -64,12 +64,20 @@ section Morph
   : α ⇒ γ where
     map :=
       f.map ∘ g.map
-    proper h :=
-      g.proper h
-      |> f.proper
+    proper :=
+      f.proper ∘ g.proper
 
-  infix:40 " ∘m " =>
+  infix:100 " ∘M " =>
     Morph.compose
+
+  def Morph.kompose
+    (f : β ⇒ γ)
+    (g : α ⇒ β)
+  : |α| → |γ| :=
+    (f.compose g).map
+
+  infix:100 " ∘m " =>
+    Morph.kompose
 
 
 
@@ -189,7 +197,7 @@ section Morph
     |>.map
 
   /-- Takes a composition operation over morphisms and returns the underlying binary function. -/
-  def Morph.kompose
+  def Morph.komposeExt
     {Obj : Sort u_o}
     {Hom : Obj → Obj → Setoid}
     (compose :
@@ -200,7 +208,7 @@ section Morph
     |>.app2
 
   macro "⟦ " f:term " ⟧" : term =>
-    `(Morph.kompose $f)
+    `(Morph.komposeExt $f)
 
 end Morph
 

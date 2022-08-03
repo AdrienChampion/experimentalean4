@@ -7,7 +7,7 @@
 
 section erased_setoid
 
-  /-- Erases the carrier of a setoid.
+  /-- Erases the carrier of a `Setoid`.
 
   Instead of `Setoid α`, this structure stores `α` as `Carrier` alongside an instance of `Setoid
   Carrier`. This allows functions producing `Setoid.Erased` values to produce different carriers
@@ -46,35 +46,23 @@ section erased_setoid
     : Erased :=
       ⟨Carrier, setoid⟩
 
+    /-! ### Lift stuff from inner `Setoid` instance -/
+
     variable
       (self : Erased)
-
-    /-! ### Lift stuff from inner `Setoid` instance -/
 
     def r :=
       self.setoid.r
 
     def refl :=
       self.setoid.refl
-
     def symm
       {a b : self.Carrier}
     : a ≈ b → b ≈ a :=
       self.setoid.symm
-    def r.symm
-      {self : Erased}
-      {a b : self.Carrier}
-    : a ≈ b → b ≈ a :=
-      self.symm
-
     def trans
       {a b c : self.Carrier}
     : a ≈ b → b ≈ c → a ≈ c:=
-      self.setoid.trans
-    def r.trans
-      {self : Erased}
-      {a b c : self.Carrier}
-    : a ≈ b → b ≈ c → a ≈ c :=
       self.setoid.trans
   end Setoid.Erased
 
@@ -90,30 +78,61 @@ structure Fam.Cat where
   Arrow :
     Object → Object → Setoid.Erased
 
+  /-- Arrow composition. -/
   compose {α β γ : Object} :
     Arrow β γ → Arrow α β → Arrow α γ
+  /-- Arrow composition is associative. -/
   compose_assoc
     {α β γ δ : Object}
     (f : Arrow γ δ) (g : Arrow β γ) (h : Arrow α β)
   : compose f (compose g h)
   = compose (compose f g) h
 
+  /-- Identity arrows. -/
   id {α : Object} :
     Arrow α α
+  /-- `id` is a left-identity for `compose`. -/
   id_compose (f : Arrow α β) :
     compose id f = f
+  /-- `id` is a right-identity for `compose`. -/
   compose_id (f : Arrow α β) :
     compose f id = f
+
+def Fam.Cat.dual (cat : Cat) : Cat where
+  Object :=
+    cat.Object
+  Arrow α β :=
+    cat.Arrow β α
+
+  compose f g :=
+    cat.compose g f
+  compose_assoc f g h :=
+    cat.compose_assoc h g f
+    |>.symm
+
+  id :=
+    cat.id
+  id_compose :=
+    cat.compose_id
+  compose_id :=
+    cat.id_compose
+
+abbrev Fam.Cat.op :=
+  Fam.Cat.dual
 
 
 
 /-- Notion of morphism over `Setoid.Erased` (`⇒`). -/
 structure Setoid.Erased.Morphism (α β : Setoid.Erased) where
+  /-- Maps values from `α`'s carrier to values of `β`'s carrier. -/
   map : α → β
+  /-- `map` is proper for `≈`. -/
   proper {a₁ a₂ : α} :
-    a₁ = a₂ → map a₁ = map a₂
+    a₁ ≈ a₂ → map a₁ ≈ map a₂
 
 infix:min " ⇒ " => Setoid.Erased.Morphism
+
+
 
 /-- Composition of two morphisms (`∘m`). -/
 def Setoid.Erased.Morphism.compose
@@ -121,22 +140,23 @@ def Setoid.Erased.Morphism.compose
 : α ⇒ γ where
   map :=
     f.map ∘ g.map
-  proper {a₁ a₂} h :=
-    let subst :=
-      g.proper h
-    by simp [subst]
+  proper h :=
+    g.proper h
+    |> f.proper
 
 infix:40 " ∘m " => Setoid.Erased.Morphism.compose
 
-/-- Explicit identity morphism. -/
+
+
+/-- Identity morphism over an explicit erased setoid `α`. -/
 def Setoid.Erased.Morphism.id (α : Setoid.Erased) : Morphism α α where
   map := (·)
   proper := (·)
-/-- Implicit identity morphism. -/
+/-- Identity morphism over an implict erased setoid `α`. -/
 abbrev Setoid.Erased.Morphism.id' {α : Setoid.Erased} :=
   id α
 
-/-- Function extensionality, not sure this makes a lot of sense. -/
+/-- Setoid morphism extensionality, not sure this is useful but whatever. -/
 protected def Setoid.Erased.Morphism.funext
   {α β : Setoid.Erased}
   {m₁ m₂ : α ⇒ β}
@@ -144,7 +164,7 @@ protected def Setoid.Erased.Morphism.funext
 : m₁.map = m₂.map :=
   funext (f₁ := m₁.map) (f₂ := m₂.map) h
 
-/-- Extensional equality (`≋`). -/
+/-- Extensional equality (`≋`) for morphisms. -/
 abbrev Setoid.Erased.Morphism.exteq
   {α β : Setoid.Erased}
   (f g : α ⇒ β)
@@ -158,29 +178,32 @@ infix:min " ≋ " => Setoid.Erased.Morphism.exteq
 /-- Family of setoids indexed by a given setoid `S`.
 
 - `fibre`: indexes setoids by elements of `S`'s carrier;
-- `ι`: reindexing function, maps `S`'s equivalence relation into morphisms over the indexed setoids.
+- `ι`: re-indexing function, maps `S`'s equivalence relation into morphisms over the indexed
+  setoids.
 -/
-structure Setoid.Fam
+structure Fam
   (S : Setoid.Erased)
 where
+  /-- Indexes setoids by elements of `S`'s carrier. -/
   fibre : S → Setoid.Erased
+  /-- Re-indexing function, maps `S`'s equivalence relation into morphisms over indexed setoids. -/
   ι :
     {x x' : S} → (x ≈ x') → (fibre x' ⇒ fibre x)
 
   /-- `ι` of the same index yields the identity morphism. -/
   ι_refl :
-    {x : S} → ι (S.refl x) ≋ Erased.Morphism.id (fibre x)
+    {x : S} → ι (S.refl x) ≋ Setoid.Erased.Morphism.id (fibre x)
 
   /-- `ι (y ≈ x)` is a left-inverse for `ι (x ≈ y)`. -/
   ι_symm_compose :
     {x y : S}
     → (h : x ≈ y)
-    → ι (S.symm h) ∘m ι h ≋ Erased.Morphism.id'
+    → ι (S.symm h) ∘m ι h ≋ Setoid.Erased.Morphism.id'
   /-- `ι (y ≈ x)` is a right-inverse for `ι (x ≈ y)`. -/
   ι_compose_symm :
     {x y : S}
     → (h : x ≈ y)
-    → ι h ∘m ι (S.symm h) ≋ Erased.Morphism.id'
+    → ι h ∘m ι (S.symm h) ≋ Setoid.Erased.Morphism.id'
 
   /-- Transitive reindexing is the same as the composition of sub-reindexers. -/
   ι_trans :
@@ -188,3 +211,29 @@ where
     → (hxy : x ≈ y)
     → (hyz : y ≈ z)
     → ι (S.trans hxy hyz) ≋ ι hxy ∘m ι hyz
+
+
+
+/-- Morphisms between objects of `Setoid.Fam`. -/
+structure Fam.Morphism
+  {S₁ S₂ : Setoid.Erased}
+  (F₁ : Fam S₁) (F₂ : Fam S₂)
+where
+  /-- Map `F₁`-indices to `F₂`-indices. -/
+  indexMap : S₁ ⇒ S₂
+  /-- Map `F₁`'s fibre to that of `F₂` (with appropriate indexing). -/
+  fibreMap :
+    (x : S₁)
+    → (F₁.fibre x) ⇒ (F₂.fibre $ indexMap.map x)
+  /-- Proof that re-indexing commutes with fibre mapping. -/
+  ιMap :
+    {x x' : S₁}
+    → (h : x ≈ x')
+    → (fibreMap x ∘m F₁.ι h) ≋ (F₂.ι $ indexMap.proper h) ∘m (fibreMap x')
+
+
+
+/-- Category with families. -/
+structure Cwf where
+  base : Fam.Cat
+  func : base.op → Setoid.Fam

@@ -17,7 +17,7 @@ similar.
 syntax
   declModifiers
   "inductiveError " declId bracketedBinder*
-  ("extends " withPosition(group(colGe term ","?)*))?
+  -- ("extends " withPosition(group(colGe term ","?)*))?
   (":" term)?
   (
     ("|" ident optDeclSig)
@@ -28,14 +28,12 @@ macro_rules
   | `(
     $mods:declModifiers
     inductiveError $inductiveName:declId $params:bracketedBinder*
-    $[extends $[$ext:term $[,]?]*]?
     $[: $ty:term]?
     $[ | $variant:ident $sig?:optDeclSig ]*
   ) => `(
     $mods:declModifiers
     inductive $inductiveName:declId
       $[$params:bracketedBinder]*
-      extends $[$[$ext:term],*]?
       $[: $ty:term]?
       $[
         | $variant:ident $sig?:optDeclSig

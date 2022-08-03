@@ -11,7 +11,7 @@ namespace Cat
 /-! ## Epimorphisms
 
 A morphism `f : α ↠ β` is *epi* iff for any two morphisms `g₁ g₂ : β ↠ γ`, we have
-`g₁∘f = g₂∘f → g₁ = g₂`.
+`g₁∘f ≈ g₂∘f → g₁ ≈ g₂`.
 -/
 section epi
   variable
@@ -48,7 +48,7 @@ end epi
 /-! ## Monomorphisms
 
 A morphism `f : β → γ` is *monic* iff for any two morphisms `g₁ g₂ : α → β`, we have
-`f∘g₁ = f∘g₂ → g₁ = g₂`.
+`f∘g₁ ≈ f∘g₂ → g₁ ≈ g₂`.
 -/
 section monic
   variable
@@ -83,8 +83,8 @@ end monic
 
 /-! ## Isomorphisms
 
-A morphism `f : α → β` is *iso* iff there is a morphism `f⁻¹ : β → α` such that `f⁻¹ ∘ f = id' β`
-and `f ∘ f⁻¹ = id' α`.
+A morphism `f : α → β` is *iso* iff there is a morphism `f⁻¹ : β → α` such that `f⁻¹ ∘ f ≈ id' β`
+and `f ∘ f⁻¹ ≈ id' α`.
 -/
 section iso
   variable
