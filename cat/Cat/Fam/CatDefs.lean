@@ -10,7 +10,7 @@ namespace Cat
 
 /-! ## Epimorphisms
 
-A morphism `f : α → β` is *epi* iff for any two morphisms `g₁ g₂ : β → γ`, we have
+A morphism `f : α ↠ β` is *epi* iff for any two morphisms `g₁ g₂ : β ↠ γ`, we have
 `g₁∘f = g₂∘f → g₁ = g₂`.
 -/
 section epi
@@ -22,22 +22,22 @@ section epi
   abbrev Fam.Cat.Epic.law'
     (ℂ : Cat)
     {α β : ℂ.Obj}
-    (f : |ℂ.Hom α β|)
+    (f : α ↠ β)
   : Prop :=
     {γ : ℂ.Obj}
-    → (g₁ g₂ : |ℂ.Hom β γ|)
+    → (g₁ g₂ : β ↠ γ)
     → (g₁ ⊚ f) ≈ (g₂ ⊚ f)
     → g₁ ≈ g₂
 
   class Fam.Cat.Epic
-    (f : |ℂ.Hom α β|)
+    (f : α ↠ β)
   where
     law : Epic.law' ℂ f
 
 
   /-- `True` iff `f` is epic. -/
   def Fam.Cat.isEpic
-    (f : |ℂ.Hom α β|)
+    (f : α ↠ β)
     [Epic f]
   : Prop :=
     true
@@ -59,21 +59,21 @@ section monic
   abbrev Fam.Cat.Monic.law'
     (ℂ : Fam.Cat)
     {β γ : ℂ.Obj}
-    (f : |ℂ.Hom β γ|)
+    (f : β ↠ γ)
   : Prop :=
     {α : ℂ.Obj}
-    → (g₁ g₂ : |ℂ.Hom α β|)
+    → (g₁ g₂ : α ↠ β)
     → f ⊚ g₁ ≈ f ⊚ g₂
     → g₁ ≈ g₂
 
   class Fam.Cat.Monic
-    (f : |ℂ.Hom α β|)
+    (f : α ↠ β)
   : Type where
     law : Monic.law' ℂ f
 
   /-- `True` iff `f` is monic. -/
   def Fam.Cat.isMonic
-    (f : |ℂ.Hom α β|)
+    (f : α ↠ β)
     [Monic f]
   : Prop :=
     true
@@ -93,30 +93,30 @@ section iso
 
   -- @[simp]
   -- abbrev Fam.Cat.Iso.law'
-  --   (f : |ℂ.Hom α β|)
-  --   (g : |ℂ.Hom β α|)
+  --   (f : α ↠ β)
+  --   (g : β ↠ α)
   -- : Prop :=
   --   g ⊚ f ≈ ℂ.id
 
   class Fam.Cat.Iso
-    (f : |ℂ.Hom α β|)
+    (f : α ↠ β)
   where
     inv :
-      |ℂ.Hom β α|
+      β ↠ α
     law_left :
       f ⊚ inv ≈ ℂ.id
     law_right :
       inv ⊚ f ≈ ℂ.id
 
   abbrev Fam.Cat.isoInv
-    (f : |ℂ.Hom α β|)
+    (f : α ↠ β)
     [inst : Iso f]
-  : |ℂ.Hom β α| :=
+  : β ↠ α :=
     inst.inv
 
   /-- Turns a `Iso f` into a `Iso inv`. -/
   instance instIsoSelfInv
-    (f : |ℂ.Hom α β|)
+    (f : α ↠ β)
     [inst : Fam.Cat.Iso f]
   : Fam.Cat.Iso (ℂ.isoInv f) where
     inv :=
@@ -128,7 +128,7 @@ section iso
 
   /-- `True` iff `f` is monic. -/
   def Fam.Cat.isIso
-    (f : |ℂ.Hom α β|)
+    (f : α ↠ β)
     [Iso f]
   : Prop :=
     true
@@ -149,7 +149,7 @@ section iso_obj
   class Fam.Cat.IsoObj
     (α β : ℂ.Obj)
   where rawMk ::
-    iso : |ℂ.Hom α β|
+    iso : α ↠ β
     instIso : Iso iso
 
   /-- Bring `Iso i.iso` whenever we manipulate `i : IsoObj α β`. -/
@@ -159,7 +159,7 @@ section iso_obj
     inst.instIso
 
   abbrev Fam.Cat.IsoObj.mk
-    (iso : |ℂ.Hom α β|)
+    (iso : α ↠ β)
     [instIso : Iso iso]
   : IsoObj α β :=
     ⟨iso, instIso⟩
@@ -179,7 +179,7 @@ end iso_obj
 
 /-! ## Initial objects
 
-An object `α` is *initial* iff for any `β` there exists a **unique** arrow in `ℂ.Hom α β`.
+An object `α` is *initial* iff for any `β` there exists a **unique** arrow in `α ↠ β`.
 -/
 section initial_obj
   variable
@@ -189,14 +189,14 @@ section initial_obj
     (α : ℂ.Obj)
   where
     arrow {β : ℂ.Obj} :
-      |ℂ.Hom α β|
-    unique {β : ℂ.Obj} (f : |ℂ.Hom α β|) :
+      α ↠ β
+    unique {β : ℂ.Obj} (f : α ↠ β) :
       arrow ≈ f
 
   /-- If `α` is initial, then any `α → α` is actually `id`. -/
   theorem Fam.Cat.Initial.equivId
     [instα : Initial α]
-    (f : |ℂ.Hom α α|)
+    (f : α ↠ α)
   : f ≈ ℂ.id :=
     let h₁ : f ≈ arrow :=
       instα.unique f
@@ -217,7 +217,7 @@ end initial_obj
 
 /-! ## Terminal objects
 
-An object `β` is *terminal* iff for any `α` there existst a **unique** arrow in `ℂ.Hom α β`.
+An object `β` is *terminal* iff for any `α` there existst a **unique** arrow in `α ↠ β`.
 -/
 section terminal_obj
   variable
@@ -227,14 +227,14 @@ section terminal_obj
     (β : ℂ.Obj)
   where
     arrow {α : ℂ.Obj} :
-      |ℂ.Hom α β|
-    unique {α : ℂ.Obj} (f : |ℂ.Hom α β|) :
+      α ↠ β
+    unique {α : ℂ.Obj} (f : α ↠ β) :
       arrow ≈ f
 
   /-- If `α` is terminal, then any `α → α` is actually `id`. -/
   theorem Fam.Cat.Terminal.equivId
     [instα : Terminal α]
-    (f : |ℂ.Hom α α|)
+    (f : α ↠ α)
   : f ≈ ℂ.id :=
     let h₁ : f ≈ arrow :=
       instα.unique f

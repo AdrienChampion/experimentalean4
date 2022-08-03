@@ -12,10 +12,10 @@ namespace Cat
 inductive Fam.Cat.Hom.Equal
   {ℂ : Cat}
   {α β : ℂ.Obj}
-  {f : |ℂ.Hom α β|}
-: (γ δ : ℂ.Obj) → (g : |ℂ.Hom γ δ|) → Prop where
+  {f : α ↠ β}
+: (γ δ : ℂ.Obj) → (g : γ ↠ δ) → Prop where
 | proof :
-  (g : |ℂ.Hom α β|)
+  (g : α ↠ β)
   → f ≈ g
   → @Equal ℂ α β f α β g
 
@@ -24,8 +24,8 @@ inductive Fam.Cat.Hom.Equal
 abbrev Fam.Cat.Hom.Equal.equiv
   {ℂ : Cat}
   {α β γ δ : ℂ.Obj}
-  (f : |ℂ.Hom α β|)
-  (g : |ℂ.Hom γ δ|)
+  (f : α ↠ β)
+  (g : γ ↠ δ)
 : Prop :=
   @Equal ℂ _ _ f _ _ g
 
@@ -46,7 +46,7 @@ namespace Fam.Cat.Hom.Equal
   theorem refl
     {ℂ : Cat}
     {α β : ℂ.Obj}
-    (f : |ℂ.Hom α β|)
+    (f : α ↠ β)
   : f ≋ f :=
     let eq_f :=
       ℂ.Hom α β |>.refl f
@@ -55,8 +55,8 @@ namespace Fam.Cat.Hom.Equal
   theorem symm
     {ℂ : Cat}
     {α₁ β₁ α₂ β₂ : ℂ.Obj}
-    (f₁ : |ℂ.Hom α₁ β₁|)
-    (f₂ : |ℂ.Hom α₂ β₂|)
+    (f₁ : α₁ ↠ β₁)
+    (f₂ : α₂ ↠ β₂)
   : f₁ ≋ f₂ → f₂ ≋ f₁ :=
     by
       intro h
@@ -67,10 +67,10 @@ namespace Fam.Cat.Hom.Equal
 
   theorem trans
     {ℂ : Cat}
-    {α₁ β₁ α₂ β₂ α₃ β₃}
-    (f₁ : |ℂ.Hom α₁ β₁|)
-    (f₂ : |ℂ.Hom α₂ β₂|)
-    (f₃ : |ℂ.Hom α₃ β₃|)
+    {α₁ β₁ α₂ β₂ α₃ β₃ : ℂ.Obj}
+    (f₁ : α₁ ↠ β₁)
+    (f₂ : α₂ ↠ β₂)
+    (f₃ : α₃ ↠ β₃)
   : f₁ ≋ f₂ → f₂ ≋ f₃ → f₁ ≋ f₃ :=
     by
       intro h₁₂ h₂₃

@@ -54,6 +54,18 @@ structure Fam.Cat where
 
 
 
+/-- Carrier of `ℂ.Hom α β`, `α ↠ β` (`\rr`). -/
+abbrev Fam.Cat.hom
+  {ℂ : Cat}
+  (α β : ℂ.Obj)
+:=
+  |ℂ.Hom α β|
+
+infixr:min " ↠ " =>
+  Fam.Cat.hom
+
+
+
 /-- Same as `ℂ.compose` with explicit type parameters. -/
 abbrev Fam.Cat.compose'
   (ℂ : Cat)
@@ -61,13 +73,12 @@ abbrev Fam.Cat.compose'
 : |ℂ.Hom β γ ⇛ ℂ.Hom α β ⇛ ℂ.Hom α γ| :=
   @Cat.compose ℂ α β γ
 
-/-- Underlying actual composition function. -/
+/-- Underlying actual composition function (`⊚`, `\oo`). -/
 abbrev Fam.Cat.kompose
   {ℂ : Cat}
   {α β γ : ℂ.Obj}
-: |ℂ.Hom β γ| → |ℂ.Hom α β| → |ℂ.Hom α γ| :=
+: (β ↠ γ) → (α ↠ β) → (α ↠ γ) :=
   ⟦ℂ.compose'⟧
-
 
 
 infixr:100 " ⊚ " =>
@@ -80,7 +91,7 @@ infixr:100 " ⊚ " =>
 instance instCongrCatCompose
   {ℂ : Fam.Cat}
   {α β γ : ℂ.Obj}
-: Congr |ℂ.Hom β γ| |ℂ.Hom α β| |ℂ.Hom α γ| ℂ.kompose where
+: Congr (β ↠ γ) (α ↠ β) (α ↠ γ) ℂ.kompose where
   left {f f'} g :=
     let k :=
       ℂ.compose' α β γ

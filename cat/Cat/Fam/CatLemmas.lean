@@ -42,14 +42,14 @@ section dual_stuff
 
   /-- "Monic morphisms" are the dual of "epic morphisms". -/
   instance Fam.Cat.Epic.dual
-    (f : |ℂ.Hom β γ|)
+    (f : β ↠ γ)
     [inst : ℂ.Epic f]
   : ℂᵒᵖ.Monic f :=
     ⟨inst.law⟩
 
   /-- "Epic morphisms" are the dual of "monic morphisms". -/
   instance Fam.Cat.Mono.dual
-    (f : |ℂ.Hom β γ|)
+    (f : β ↠ γ)
     [inst : ℂ.Monic f]
   : ℂᵒᵖ.Epic f :=
     ⟨inst.law⟩
@@ -57,7 +57,7 @@ section dual_stuff
   /-- The notion of isomorphism is its own dual. -/
   instance Fam.Cat.Iso.dual
     {α β : ℂ.Obj}
-    (f : |ℂ.Hom α β|)
+    (f : α ↠ β)
     [inst : ℂ.Iso f]
   : ℂᵒᵖ.Iso (ℂ.isoInv f) where
     inv :=
@@ -84,9 +84,9 @@ section dual_stuff
   : α ≅ β :=
     -- proof outline: only one arrow from `α` to `β`, only one back; their composition must be `id`
     -- since there's only one arrow from `β` to `β` (same for `α`), which must be the identity.
-    let f : |ℂ.Hom α β| :=
+    let f : α ↠ β :=
       instα.arrow
-    let fInv : |ℂ.Hom β α| :=
+    let fInv : β ↠ α :=
       instβ.arrow
     let id_left :=
       f ⊚ fInv
