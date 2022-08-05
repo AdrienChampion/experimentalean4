@@ -53,48 +53,6 @@ section Morph
     (self.map ·)
 
 
-
-  /-- Composition of two morphisms (`∘m`).
-
-  I'm not sure this is used anywhere actually.
-  -/
-  def Morph.compose
-    (f : β ⇒ γ)
-    (g : α ⇒ β)
-  : α ⇒ γ where
-    map :=
-      f.map ∘ g.map
-    proper :=
-      f.proper ∘ g.proper
-
-  infix:100 " ∘M " =>
-    Morph.compose
-
-  def Morph.kompose
-    (f : β ⇒ γ)
-    (g : α ⇒ β)
-  : |α| → |γ| :=
-    (f.compose g).map
-
-  infix:100 " ∘m " =>
-    Morph.kompose
-
-
-
-  /-- Identity morphism over an implicit erased setoid `α`. -/
-  protected def Morph.id
-    {α : Setoid}
-  : α ⇒ α where
-    map := id
-    proper := id
-
-  /-- Identity morphism over an explicit erased setoid `α`. -/
-  abbrev Morph.id'
-    (α : Setoid)
-  : α ⇒ α :=
-    @Morph.id α
-
-
   /-! ## Equivalence relation on morphisms -/
   section equiv
 
@@ -149,6 +107,91 @@ section Morph
         Morph.equiv.trans
 
   end equiv
+
+
+
+  /-- Composition of two morphisms, `Morph` version (`∘M`). -/
+  def Morph.compose
+    (f : β ⇒ γ)
+    (g : α ⇒ β)
+  : α ⇒ γ where
+    map :=
+      f.map ∘ g.map
+    proper :=
+      f.proper ∘ g.proper
+
+  infix:100 " ∘M " =>
+    Morph.compose
+
+  /-- Morphism composition (`∘M`) is associative. -/
+  theorem Morph.compose.assoc
+    (f : γ ⇒ δ)
+    (g : β ⇒ γ)
+    (h : α ⇒ β)
+  : f ∘M (g ∘M h) ≈ (f ∘M g) ∘M h :=
+    fun a =>
+      by simp [compose, δ.refl]
+
+  /-- Morphism composition (`∘M`) abides by congruence laws. -/
+  def Morph.compose.congr
+  : Congr (β ⇒ γ) (α ⇒ β) (α ⇒ γ) Morph.compose where
+    left g :=
+      fun h_f a =>
+        g.map a |> h_f
+    right f :=
+      fun h_g a =>
+        h_g a |> f.proper
+
+
+
+
+  /-- Composition of two morphisms, function version (`∘m`). -/
+  def Morph.kompose
+    (f : β ⇒ γ)
+    (g : α ⇒ β)
+  : |α| → |γ| :=
+    (f.compose g).map
+
+  infix:100 " ∘m " =>
+    Morph.kompose
+
+  /-- Morphism composition (`∘M`) is associative. -/
+  theorem Morph.kompose.assoc
+    (f : γ ⇒ δ)
+    (g : β ⇒ γ)
+    (h : α ⇒ β)
+  : f ∘M (g ∘M h) ≈ (f ∘M g) ∘M h :=
+    fun a =>
+      by simp [compose, δ.refl]
+
+
+
+  /-- Identity morphism over an implicit erased setoid `α`. -/
+  protected def Morph.id
+    {α : Setoid}
+  : α ⇒ α where
+    map := id
+    proper := id
+
+  /-- Identity morphism over an explicit erased setoid `α`. -/
+  protected abbrev Morph.id'
+    (α : Setoid)
+  : α ⇒ α :=
+    @Morph.id α
+
+  /-- `Morph.id` is a left-identity for `∘M`. -/
+  theorem Morph.id_compose
+    (f : α ⇒ β)
+  : Morph.id ∘M f ≈ f :=
+    fun _a =>
+      β.refl _
+
+  /-- `Morph.id` is a right-identity for `∘M`. -/
+  theorem Morph.compose_id
+    (f : α ⇒ β)
+  : f ∘M Morph.id ≈ f :=
+    fun _a =>
+      β.refl _
 
 
 

@@ -89,21 +89,11 @@ abbrev Fam.Cat.dualKompose_id
   ℂ.id_compose f
 
 /-- Dual of a category `ℂᵒᵖ` (`\op`). -/
-def Fam.Cat.Dual
-: Cat where
-  Obj :=
-    ℂ.Obj
-  Hom :=
-    ℂ.dualHom
-  compose :=
-    ℂ.dualComp.toMorph2
-  compose_assoc :=
+def Fam.Cat.Dual : Cat :=
+  ℂ.dualComp.toCat
     ℂ.dualKompose_assoc
-  id :=
     ℂ.dualId
-  id_compose :=
     ℂ.id_dualKompose
-  compose_id :=
     ℂ.dualKompose_id
 
 postfix:max "ᵒᵖ" =>
