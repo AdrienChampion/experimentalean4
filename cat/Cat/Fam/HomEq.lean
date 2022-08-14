@@ -2,14 +2,14 @@ import Cat.Fam.Comp
 
 
 
-/-! # Equality for category arrows in terms of the corresponding setoid -/
+/-! # Equivalence for category arrows in terms of the corresponding setoid -/
 
 namespace Cat
 
 
 
-/-- A proof that `f` is equal to `g` (`≋`, `\~~~`). -/
-inductive Fam.Cat.Hom.Equal
+/-- A proof that `f` is equivalent to `g` (`≋`, `\~~~`). -/
+inductive Fam.Cat.Hom.Equiv
   {ℂ : Cat}
   {α β : ℂ.Obj}
   {f : α ↠ β}
@@ -17,31 +17,31 @@ inductive Fam.Cat.Hom.Equal
 | proof :
   (g : α ↠ β)
   → f ≈ g
-  → @Equal ℂ α β f α β g
+  → @Equiv ℂ α β f α β g
 
-/-- Predicate for *"`f` and `g` are equal"* (`≋`, `\~~~`). -/
+/-- Predicate for *"`f` and `g` are equivalent"* (`≋`, `\~~~`). -/
 @[simp]
-abbrev Fam.Cat.Hom.Equal.equiv
+abbrev Fam.Cat.Hom.Equiv.equiv
   {ℂ : Cat}
   {α β γ δ : ℂ.Obj}
   (f : α ↠ β)
   (g : γ ↠ δ)
 : Prop :=
-  @Equal ℂ _ _ f _ _ g
+  @Equiv ℂ _ _ f _ _ g
 
 infix:30 " ≋ " =>
-  Fam.Cat.Hom.Equal.equiv
+  Fam.Cat.Hom.Equiv.equiv
 
 
 
-/-! ## `Fam.Cat.Hom.Equal` is an equivalence relation
+/-! ## `Fam.Cat.Hom.Equiv` is an equivalence relation
 
-We cannot build an `Equivalence` though, as it takes a `r : α → α → Prop`. `Equal`'s arguments do
+We cannot build an `Equivalence` though, as it takes a `r : α → α → Prop`. `Equiv`'s arguments do
 not have the same type in general `:/`.
 
-We can still prove that `Equal` is reflexive, symmetric and transitive so let's just do that.
+We can still prove that `Equiv` is reflexive, symmetric and transitive so let's just do that.
 -/
-namespace Fam.Cat.Hom.Equal
+namespace Fam.Cat.Hom.Equiv
 
   theorem refl
     {ℂ : Cat}
@@ -68,9 +68,9 @@ namespace Fam.Cat.Hom.Equal
   theorem trans
     {ℂ : Cat}
     {α₁ β₁ α₂ β₂ α₃ β₃ : ℂ.Obj}
-    (f₁ : α₁ ↠ β₁)
-    (f₂ : α₂ ↠ β₂)
-    (f₃ : α₃ ↠ β₃)
+    {f₁ : α₁ ↠ β₁}
+    {f₂ : α₂ ↠ β₂}
+    {f₃ : α₃ ↠ β₃}
   : f₁ ≋ f₂ → f₂ ≋ f₃ → f₁ ≋ f₃ :=
     by
       intro h₁₂ h₂₃
@@ -78,4 +78,4 @@ namespace Fam.Cat.Hom.Equal
       apply proof
       apply ℂ.Hom α₁ β₁ |>.trans
       <;> assumption
-end Fam.Cat.Hom.Equal
+end Fam.Cat.Hom.Equiv

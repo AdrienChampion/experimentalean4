@@ -126,7 +126,7 @@ section iso
     law_right :=
       inst.law_left
 
-  /-- `True` iff `f` is monic. -/
+  /-- `True` iff `f` is iso. -/
   def Fam.Cat.isIso
     (f : α ↠ β)
     [Iso f]
