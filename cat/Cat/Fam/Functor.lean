@@ -244,7 +244,7 @@ section hom_functors
   : α ↠ γ :=
     f ⊚ g
 
-  /-- `HomFunc.hom` is a morphism. -/
+  /-- `HomFunc.hom α f` is a morphism. -/
   @[simp]
   def Fam.Cat.Func.FunSET.HomFunc.morph
     (α : ℂ.Obj)
@@ -257,9 +257,9 @@ section hom_functors
 
 
 
-  /-- `HomFunc.morph` is itself a morphism.
+  /-- `HomFunc.morph α` is also a morphism.
   
-  `HomFunc.Morph` will be the arrow-mapping in the `FunSET` functor.
+  `HomFunc.Morph` will be the arrow-map in the `FunSET` functor below.
   -/
   @[simp]
   def Fam.Cat.Func.FunSET.HomFunc.Morph
