@@ -19,7 +19,7 @@ structure Fam.Cat where
   : Obj → Obj → Setoid
 
 
-  /-- Type-level arrow composition `f ⊚ g` (`\oo`).
+  /-- Type-level arrow composition.
 
   **NB:** `|dom ⇛ cod|` coerces to `|dom| → |cod|`. This is why we can directly write `compose f g`
   without having to perform conversions all over the place.

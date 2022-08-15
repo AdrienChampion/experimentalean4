@@ -1,4 +1,5 @@
 import Cat.Fam.CatLemmas
+import Cat.Fam.Categories.Setoid
 
 /-! # Functors -/
 
@@ -211,3 +212,111 @@ section setoid
       instZetoidFunc
 
 end setoid
+
+
+
+/-! ## Family of Hom-functors
+
+Functor `Hom(α,-) : ℂ → Set`. Basically, this functor
+- maps `β : ℂ.Obj` to `ℂ.Hom α β`;
+- maps `f : ℂ.Hom β γ` to `fun (g : ℂ.Hom α β) => f ∘ g`.
+
+So `α` is a kind of pivot we see `ℂ` through: a `β` only matters as far as we can go from `α` to
+`β`, and a `ℂ.Hom β γ` only matters as far as we can compose it with a `ℂ.Hom α β`.
+-/
+section hom_functors
+  variable
+    {ℂ : Fam.Cat}
+    {α : ℂ.Obj}
+
+  @[simp]
+  abbrev Fam.Cat.Func.FunSET.HomFunc.obj
+    (α β : ℂ.Obj)
+  :=
+    ℂ.Hom α β
+
+  @[simp]
+  abbrev Fam.Cat.Func.FunSET.HomFunc.hom
+    (α : ℂ.Obj)
+    {β γ : ℂ.Obj}
+    (f : β ↠ γ)
+    (g : α ↠ β)
+  : α ↠ γ :=
+    f ⊚ g
+
+  /-- `HomFunc.hom` is a morphism. -/
+  @[simp]
+  def Fam.Cat.Func.FunSET.HomFunc.morph
+    (α : ℂ.Obj)
+    (f : β ↠ γ)
+  : (ℂ.Hom α β) ⇒ (ℂ.Hom α γ) where
+    map :=
+      hom α f
+    proper :=
+      ℂ.congr.right f
+
+
+
+  /-- `HomFunc.morph` is itself a morphism.
+  
+  `HomFunc.Morph` will be the arrow-mapping in the `FunSET` functor.
+  -/
+  @[simp]
+  def Fam.Cat.Func.FunSET.HomFunc.Morph
+    (α : ℂ.Obj)
+    {β γ : ℂ.Obj}
+  : (ℂ.Hom β γ) ⇒ (Fam.Cat.SET.Hom (HomFunc.obj α β) (HomFunc.obj α γ)) where
+    map f :=
+      HomFunc.morph α f
+    proper :=
+      by
+        intro f₁ f₂ h_f
+        simp
+        intro g
+        apply ℂ.congr.left g h_f
+
+  /-- `HomFunc.Morph` respects the composition law. -/
+  theorem Fam.Cat.Func.FunSET.HomFunc.Morph.comp_law
+    (α : ℂ.Obj)
+    {β γ δ : ℂ.Obj}
+    (g : γ ↠ δ)
+    (h : β ↠ γ)
+  : law.comp (ℂ₁ := ℂ) (ℂ₂ := SET) (obj α) (Morph α) g h :=
+    by
+      intro param
+      simp [
+        kompose, compose',
+        SET, Comp.toCat, Morph.app2,
+        Morph.compose.Comp, Morph.compose
+      ]
+
+  /-- `HomFunc.Morph` respects the identity law. -/
+  theorem Fam.Cat.Func.FunSET.HomFunc.Morph.id_law
+    (α β : ℂ.Obj)
+  : law.id' (ℂ₁ := ℂ) (ℂ₂ := SET) (obj α) (Morph α) β :=
+    by
+      intro f
+      simp [
+        SET, Comp.toCat,
+        Morph.id,
+        kompose, compose',
+        Morph.app2
+      ]
+
+
+
+  /-- Hom-functors are functors. -/
+  def Fam.Cat.Func.FunSET
+    {ℂ : Cat}
+    (α : ℂ.Obj)
+  : Func ℂ SET where
+    fObj :=
+      Fam.Cat.Func.FunSET.HomFunc.obj α
+    fMap :=
+      FunSET.HomFunc.Morph α
+    comp_law :=
+      FunSET.HomFunc.Morph.comp_law α
+    id_law :=
+      @FunSET.HomFunc.Morph.id_law _ α
+
+end hom_functors

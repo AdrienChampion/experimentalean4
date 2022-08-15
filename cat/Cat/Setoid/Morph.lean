@@ -98,7 +98,7 @@ section Morph
 
 
 
-    instance instTransMorphEquiv
+    instance instTransMorphTrans
       {α β : Setoid}
     : let I := @instHasEquivMorph α β
       Trans I.Equiv I.Equiv I.Equiv
@@ -240,6 +240,7 @@ section Morph
     |>.map
 
   /-- Takes a composition operation over morphisms and returns the underlying binary function. -/
+  @[simp]
   def Morph.komposeExt
     {Obj : Sort u_o}
     {Hom : Obj → Obj → Setoid}
