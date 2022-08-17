@@ -23,7 +23,7 @@ section congr
     [instα : HasEquiv α]
     [instβ : HasEquiv β]
     [instγ : HasEquiv γ]
-    [Trans instγ.Equiv instγ.Equiv instγ.Equiv]
+    -- [Trans instγ.Equiv instγ.Equiv instγ.Equiv]
     (compose : α → β → γ)
   where
     left

@@ -12,25 +12,65 @@ namespace Cat
 inductive Fam.Cat.Hom.Equiv
   {ℂ : Cat}
   {α β : ℂ.Obj}
-  {f : α ↠ β}
-: (γ δ : ℂ.Obj) → (g : γ ↠ δ) → Prop where
+  (f : α ↠ β)
+: {γ δ : ℂ.Obj}
+  → (γ ↠ δ)
+  → Prop
+where
 | proof :
   (g : α ↠ β)
   → f ≈ g
   → @Equiv ℂ α β f α β g
 
+
 /-- Predicate for *"`f` and `g` are equivalent"* (`≋`, `\~~~`). -/
-@[simp]
 abbrev Fam.Cat.Hom.Equiv.equiv
   {ℂ : Cat}
   {α β γ δ : ℂ.Obj}
   (f : α ↠ β)
   (g : γ ↠ δ)
 : Prop :=
-  @Equiv ℂ _ _ f _ _ g
+  @Equiv ℂ α β f γ δ g
 
 infix:30 " ≋ " =>
   Fam.Cat.Hom.Equiv.equiv
+
+
+
+def Fam.Cat.Hom.Equiv.domEq
+  {ℂ : Cat}
+  {α β γ δ : ℂ.Obj}
+  {f : α ↠ β}
+  {g : γ ↠ δ}
+  (h : f ≋ g)
+: γ = α :=
+  by
+    cases h with
+    | proof _ _ =>
+      rfl
+
+def Fam.Cat.Hom.Equiv.codEq
+  {ℂ : Cat}
+  {α β γ δ : ℂ.Obj}
+  {f : α ↠ β}
+  {g : γ ↠ δ}
+  (h : f ≋ g)
+: δ = β :=
+  by
+    cases h with
+    | proof _ _ =>
+      rfl
+
+def Fam.Cat.Hom.Equiv.toEq
+  {ℂ : Cat}
+  {α β : ℂ.Obj}
+  {f : α ↠ β}
+  {g : α ↠ β}
+  (h : f ≋ g)
+: (f ≈ g) :=
+  match h with
+  | proof _ eq =>
+    eq
 
 
 
@@ -78,4 +118,16 @@ namespace Fam.Cat.Hom.Equiv
       apply proof
       apply ℂ.Hom α₁ β₁ |>.trans
       <;> assumption
+
 end Fam.Cat.Hom.Equiv
+
+instance instTransHomEq
+  {ℂ : Fam.Cat}
+  {α₁ β₁ α₂ β₂ α₃ β₃ : ℂ.Obj}
+: Trans
+  (@Fam.Cat.Hom.Equiv.equiv ℂ α₁ β₁ α₂ β₂)
+  (@Fam.Cat.Hom.Equiv.equiv ℂ α₂ β₂ α₃ β₃)
+  (@Fam.Cat.Hom.Equiv.equiv ℂ α₁ β₁ α₃ β₃)
+where
+  trans :=
+    Fam.Cat.Hom.Equiv.trans

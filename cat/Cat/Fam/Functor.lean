@@ -89,7 +89,7 @@ abbrev Fam.Cat.Func.id_law'
 
 /-- Applied version of `F.fMap`. -/
 def Fam.Cat.Func.fmap
-  {F : Func ℂ₁ ℂ₂}
+  (F : Func ℂ₁ ℂ₂)
   {α β : ℂ₁.Obj}
 : (α ↠ β) → (F.fObj α ↠ F.fObj β) :=
   fun f =>
@@ -97,21 +97,21 @@ def Fam.Cat.Func.fmap
 
 
 
--- /-- Allows writing `F object` for `F.fObj object` -/
--- instance instCoeFunFunctorObj
---   {ℂ₁ ℂ₂ : Fam.Cat}
--- : CoeFun
---   (Fam.Cat.Func ℂ₁ ℂ₂)
---   (𝕂 $ ℂ₁.Obj → ℂ₂.Obj)
--- where
---   coe F :=
---     F.fObj
+/-- Allows writing `F object` for `F.fObj object` -/
+instance instCoeFunFunctorObj
+  {ℂ₁ ℂ₂ : Fam.Cat}
+: CoeFun
+  (Fam.Cat.Func ℂ₁ ℂ₂)
+  (𝕂 $ ℂ₁.Obj → ℂ₂.Obj)
+where
+  coe F :=
+    F.fObj
 
--- example
---   (F : Fam.Cat.Func ℂ₁ ℂ₂)
---   (α : ℂ₁.Obj)
--- : ℂ₂.Obj :=
---   F α
+example
+  (F : Fam.Cat.Func ℂ₁ ℂ₂)
+  (α : ℂ₁.Obj)
+: ℂ₂.Obj :=
+  F α
 
 
 
@@ -137,6 +137,14 @@ def Fam.Cat.Func.fmap
 
 
 /-- `fMap` is proper for `≈`. -/
+theorem Fam.Cat.Func.fMap_proper
+  (F : Func ℂ₁ ℂ₂)
+  {α β : ℂ₁.Obj}
+  (f₁ f₂ : α ↠ β)
+: f₁ ≈ f₂ → F.fMap f₁ ≈ F.fMap f₂ :=
+  F.fMap.proper
+
+/-- `fmap` is proper for `≈`. -/
 theorem Fam.Cat.Func.fmap_proper
   (F : Func ℂ₁ ℂ₂)
   {α β : ℂ₁.Obj}
@@ -161,7 +169,7 @@ section setoid
   instance instFuncHasEquiv
   : HasEquiv (Fam.Cat.Func ℂ₁ ℂ₂) where
     Equiv F G :=
-      @Fam.Cat.Func.equiv ℂ₁ ℂ₂ F G
+      Fam.Cat.Func.equiv F G
 
   /-- Functor equivalence is reflexive. -/
   theorem Fam.Cat.Func.Equiv.refl
@@ -186,6 +194,15 @@ section setoid
       Hom.Equiv.trans
         (h_FG f)
         (h_GH f)
+
+  instance instTransFuncEquiv
+  : Trans
+    (@Fam.Cat.Func.equiv ℂ₁ ℂ₂)
+    (@Fam.Cat.Func.equiv ℂ₁ ℂ₂)
+    (@Fam.Cat.Func.equiv ℂ₁ ℂ₂)
+  where
+    trans :=
+      Fam.Cat.Func.Equiv.trans
 
   /-- Functor equivalence is an equivalence relation. -/
   def Fam.Cat.Func.Equiv.proof
@@ -320,3 +337,146 @@ section hom_functors
       @FunSET.HomFunc.Morph.id_law _ α
 
 end hom_functors
+
+
+
+/-! ## Composition `⊙` (`\o.`) of two functors -/
+section comp
+  variable
+    {ℂ₁ ℂ₂ ℂ₃ : Fam.Cat}
+    (F₂₃ : Fam.Cat.Func ℂ₂ ℂ₃)
+    (F₁₂ : Fam.Cat.Func ℂ₁ ℂ₂)
+
+  @[simp]
+  protected abbrev Fam.Cat.Func.comp.fObj
+    (α : ℂ₁.Obj)
+  :=
+    F₁₂ α
+    |> F₂₃
+
+  @[simp]
+  protected abbrev Fam.Cat.Func.comp.fmap
+    {α β : ℂ₁.Obj}
+    (f : α ↠ β)
+  : F₂₃ (F₁₂ α) ↠ F₂₃ (F₁₂ β) :=
+    F₁₂.fmap f
+    |> F₂₃.fmap
+
+  protected theorem Fam.Cat.Func.comp.fMap_proper
+    {α β : ℂ₁.Obj}
+    {f₁ f₂ : α ↠ β}
+  : f₁ ≈ f₂ → Func.comp.fmap F₂₃ F₁₂ f₁ ≈ Func.comp.fmap F₂₃ F₁₂ f₂ :=
+    fun h_f =>
+      F₁₂.fMap.proper h_f
+      |> F₂₃.fMap.proper
+
+
+
+  /-- `Func.comp.fMap` defines a morphism. -/
+  @[simp]
+  protected def Fam.Cat.Func.comp.fMapMorph
+    {α β : ℂ₁.Obj}
+  : ℂ₁.Hom α β ⇒ ℂ₃.Hom (F₂₃ $ F₁₂ α) (F₂₃ $ F₁₂ β) where
+    map :=
+      Func.comp.fmap F₂₃ F₁₂
+    proper :=
+      Func.comp.fMap_proper F₂₃ F₁₂
+
+
+
+  /-- Functor composition respects the functor composition law. -/
+  protected def Fam.Cat.Func.comp.comp_law
+    {α β γ : ℂ₁.Obj}
+    (f : β ↠ γ)
+    (g : α ↠ β)
+  : Func.law.comp (Func.comp.fObj F₂₃ F₁₂) (Func.comp.fMapMorph F₂₃ F₁₂) f g :=
+    by
+      calc
+        F₂₃.fMap.map
+          (F₁₂.fMap.map (f ⊚ g))
+        ≈ F₂₃.fMap.map
+          ((F₁₂.fMap.map f) ⊚ (F₁₂.fMap.map g))
+        :=
+          F₁₂.comp_law f g
+          |> F₂₃.fMap.proper
+        
+        _
+        ≈ (F₂₃.fMap.map $ F₁₂.fMap.map f) ⊚ (F₂₃.fMap.map $ F₁₂.fMap.map g)
+        :=
+          by
+            simp
+
+  /-- Functor composition respects the functor identity law. -/
+  protected def Fam.Cat.Func.comp.id_law
+    {α : ℂ₁.Obj}
+  : Func.law.id' (Func.comp.fObj F₂₃ F₁₂) (Func.comp.fMapMorph F₂₃ F₁₂) α :=
+    by
+      calc
+        F₂₃.fMap.map (F₁₂.fMap.map ℂ₁.id)
+        ≈ F₂₃.fMap.map ℂ₂.id
+        :=
+          F₂₃.fMap.proper (F₁₂.id_law)
+        
+        _
+        ≈ ℂ₃.id
+        :=
+          F₂₃.id_law
+
+
+
+  /-- Functor composition defines a functor (`⊙`, `\o.`). -/
+  def Fam.Cat.Func.Comp
+    (F₂₃ : Func ℂ₂ ℂ₃)
+    (F₁₂ : Func ℂ₁ ℂ₂)
+  : Func ℂ₁ ℂ₃ where
+    fObj :=
+      Func.comp.fObj F₂₃ F₁₂
+    fMap :=
+      Func.comp.fMapMorph F₂₃ F₁₂
+    comp_law :=
+      Fam.Cat.Func.comp.comp_law F₂₃ F₁₂
+    id_law :=
+      Fam.Cat.Func.comp.id_law F₂₃ F₁₂
+
+  infix:101 " ⊙ " =>
+    Fam.Cat.Func.Comp
+
+
+  def Fam.Cat.Func.Comp.congr_right
+    (F₂₃ : Func ℂ₂ ℂ₃)
+    (F₁₂ F₁₂' : Func ℂ₁ ℂ₂)
+    (h₁₂ : F₁₂ ≈ F₁₂')
+  : F₂₃ ⊙ F₁₂ ≈ F₂₃ ⊙ F₁₂' :=
+    by
+      intro α β f
+      let h :=
+        h₁₂ f
+      let h_dom :=
+        h.domEq
+      let h_cod :=
+        h.codEq
+      -- simp [Hom.Equiv.equiv]
+      -- cases h
+      sorry
+
+
+  /-- `Func.CompFunc` respects congruence laws. -/
+  def Fam.Cat.Func.Comp.Congr
+  : Congr (Func ℂ₂ ℂ₃) (Func ℂ₁ ℂ₂) (Func ℂ₁ ℂ₃) Func.Comp where
+    left {F₂₃ F₂₃'} F₁₂ h₂₃ :=
+      by
+        intro α β f
+        apply h₂₃
+    right F₂₃ {F₁₂ F₁₂'} h₁₂ {α β} f :=
+      by
+        let h :=
+          h₁₂ f
+        let h_dom : F₁₂' α = F₁₂ α :=
+          Hom.Equiv.domEq h
+        let h_cod : F₁₂' β = F₁₂ β :=
+          Hom.Equiv.codEq h
+
+        -- cases h
+        sorry
+
+end comp
