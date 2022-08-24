@@ -448,16 +448,27 @@ section comp
     (h₁₂ : F₁₂ ≈ F₁₂')
   : F₂₃ ⊙ F₁₂ ≈ F₂₃ ⊙ F₁₂' :=
     by
+      -- let ⟨fObj₁, fMap₁, comp_law₁, id_law₁⟩ :=
+      --   F₁₂
+      -- let ⟨fObj₁', fMap₁', comp_law₁', id_law₁'⟩ :=
+      --   F₁₂'
+      -- let ⟨fObj₂, fMap₂, comp_law₂, id_law₂⟩ :=
+      --   F₂₃
       intro α β f
       let h :=
         h₁₂ f
-      let h_dom :=
-        h.domEq
-      let h_cod :=
-        h.codEq
-      -- simp [Hom.Equiv.equiv]
-      -- cases h
-      sorry
+      let h' :=
+        h.unify
+      simp [Eq.mpr, fmap] at h'
+      cases h'
+      match h' with
+      | Hom.Equiv.proof _ eqv =>
+        simp [fmap, Fam.Cat.Func.Comp]
+        let eqv₂₃ :=
+          F₂₃.fMap.proper eqv
+        let p :=
+          Hom.Equiv.proof _ eqv₂₃
+        sorry
 
 
   /-- `Func.CompFunc` respects congruence laws. -/
@@ -471,12 +482,6 @@ section comp
       by
         let h :=
           h₁₂ f
-        let h_dom : F₁₂' α = F₁₂ α :=
-          Hom.Equiv.domEq h
-        let h_cod : F₁₂' β = F₁₂ β :=
-          Hom.Equiv.codEq h
-
-        -- cases h
         sorry
 
 end comp

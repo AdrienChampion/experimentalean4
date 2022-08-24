@@ -20,7 +20,7 @@ where
 | proof :
   (g : α ↠ β)
   → f ≈ g
-  → @Equiv ℂ α β f α β g
+  → Equiv f g
 
 
 /-- Predicate for *"`f` and `g` are equivalent"* (`≋`, `\~~~`). -/
@@ -43,7 +43,7 @@ def Fam.Cat.Hom.Equiv.domEq
   {f : α ↠ β}
   {g : γ ↠ δ}
   (h : f ≋ g)
-: γ = α :=
+: α = γ :=
   by
     cases h with
     | proof _ _ =>
@@ -55,11 +55,34 @@ def Fam.Cat.Hom.Equiv.codEq
   {f : α ↠ β}
   {g : γ ↠ δ}
   (h : f ≋ g)
-: δ = β :=
+: β = δ :=
   by
     cases h with
     | proof _ _ =>
       rfl
+
+
+
+/-- Rewrites a `Equiv.proof` unifying (co)domains. -/
+def Fam.Cat.Hom.Equiv.unify
+  {ℂ : Cat}
+  {α β γ δ : ℂ.Obj}
+  {f : α ↠ β}
+  {g : γ ↠ δ}
+  (h : f ≋ g)
+: (
+  @Equiv ℂ α β f α β (
+    let h_dom := domEq h
+    let h_cod := codEq h
+    by
+      rw [h_dom, h_cod]
+      exact g
+  )
+) :=
+  by
+    cases h with
+    | proof g eq =>
+      apply proof g eq
 
 def Fam.Cat.Hom.Equiv.toEq
   {ℂ : Cat}
