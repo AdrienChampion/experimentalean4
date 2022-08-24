@@ -37,7 +37,7 @@ infix:30 " ≋ " =>
 
 
 
-def Fam.Cat.Hom.Equiv.domEq
+theorem Fam.Cat.Hom.Equiv.domEq
   {ℂ : Cat}
   {α β γ δ : ℂ.Obj}
   {f : α ↠ β}
@@ -49,7 +49,7 @@ def Fam.Cat.Hom.Equiv.domEq
     | proof _ _ =>
       rfl
 
-def Fam.Cat.Hom.Equiv.codEq
+theorem Fam.Cat.Hom.Equiv.codEq
   {ℂ : Cat}
   {α β γ δ : ℂ.Obj}
   {f : α ↠ β}
@@ -64,7 +64,7 @@ def Fam.Cat.Hom.Equiv.codEq
 
 
 /-- Rewrites a `Equiv.proof` unifying (co)domains. -/
-def Fam.Cat.Hom.Equiv.unify
+theorem Fam.Cat.Hom.Equiv.unify
   {ℂ : Cat}
   {α β γ δ : ℂ.Obj}
   {f : α ↠ β}
@@ -84,7 +84,7 @@ def Fam.Cat.Hom.Equiv.unify
     | proof g eq =>
       apply proof g eq
 
-def Fam.Cat.Hom.Equiv.toEq
+theorem Fam.Cat.Hom.Equiv.toEq
   {ℂ : Cat}
   {α β : ℂ.Obj}
   {f : α ↠ β}
