@@ -442,46 +442,50 @@ section comp
     Fam.Cat.Func.Comp
 
 
-  def Fam.Cat.Func.Comp.congr_right
+
+  def Fam.Cat.Func.Comp.congr_left
+    {F₂₃ F₂₃' : Func ℂ₂ ℂ₃}
+    (F₁₂ : Func ℂ₁ ℂ₂)
+    (h₂₃ : F₂₃ ≈ F₂₃')
+  : F₂₃ ⊙ F₁₂ ≈ F₂₃' ⊙ F₁₂ :=
+    fun f =>
+      h₂₃ (F₁₂.fmap f)
+
+
+
+  protected def Fam.Cat.Func.Comp.congr_right_aux
     (F₂₃ : Func ℂ₂ ℂ₃)
-    (F₁₂ F₁₂' : Func ℂ₁ ℂ₂)
-    (h₁₂ : F₁₂ ≈ F₁₂')
-  : F₂₃ ⊙ F₁₂ ≈ F₂₃ ⊙ F₁₂' :=
+    (F₁₂ : Func ℂ₁ ℂ₂)
+    {α' β' : ℂ₂.Obj}
+    (f₁₂' : α' ↠ β')
+    {α β : ℂ₁.Obj}
+    (f : α ↠ β)
+    (h : F₁₂.fmap f ≋ f₁₂')
+  : F₂₃.fmap (F₁₂.fmap f) ≋ F₂₃.fmap f₁₂' :=
     by
-      -- let ⟨fObj₁, fMap₁, comp_law₁, id_law₁⟩ :=
-      --   F₁₂
-      -- let ⟨fObj₁', fMap₁', comp_law₁', id_law₁'⟩ :=
-      --   F₁₂'
-      -- let ⟨fObj₂, fMap₂, comp_law₂, id_law₂⟩ :=
-      --   F₂₃
-      intro α β f
-      let h :=
-        h₁₂ f
-      let h' :=
-        h.unify
-      simp [Eq.mpr, fmap] at h'
-      cases h'
-      match h' with
-      | Hom.Equiv.proof _ eqv =>
-        simp [fmap, Fam.Cat.Func.Comp]
+      cases h with
+      | proof f₁₂' eqv =>
         let eqv₂₃ :=
           F₂₃.fMap.proper eqv
-        let p :=
-          Hom.Equiv.proof _ eqv₂₃
-        sorry
+        apply Hom.Equiv.proof _ eqv₂₃
+
+  def Fam.Cat.Func.Comp.congr_right
+    (F₂₃ : Func ℂ₂ ℂ₃)
+    {F₁₂ F₁₂' : Func ℂ₁ ℂ₂}
+    (h₁₂ : F₁₂ ≈ F₁₂')
+  : F₂₃ ⊙ F₁₂ ≈ F₂₃ ⊙ F₁₂' :=
+    fun f =>
+      let h :=
+        h₁₂ f
+      Comp.congr_right_aux F₂₃ F₁₂ (fmap F₁₂' f) f h
 
 
   /-- `Func.CompFunc` respects congruence laws. -/
   def Fam.Cat.Func.Comp.Congr
   : Congr (Func ℂ₂ ℂ₃) (Func ℂ₁ ℂ₂) (Func ℂ₁ ℂ₃) Func.Comp where
-    left {F₂₃ F₂₃'} F₁₂ h₂₃ :=
-      by
-        intro α β f
-        apply h₂₃
-    right F₂₃ {F₁₂ F₁₂'} h₁₂ {α β} f :=
-      by
-        let h :=
-          h₁₂ f
-        sorry
+    left :=
+      congr_left
+    right :=
+      congr_right
 
 end comp
