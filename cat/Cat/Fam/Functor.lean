@@ -425,7 +425,7 @@ section comp
 
 
   /-- Functor composition defines a functor (`⊙`, `\o.`). -/
-  def Fam.Cat.Func.Comp
+  def Fam.Cat.Func.comp
     (F₂₃ : Func ℂ₂ ℂ₃)
     (F₁₂ : Func ℂ₁ ℂ₂)
   : Func ℂ₁ ℂ₃ where
@@ -439,11 +439,11 @@ section comp
       Fam.Cat.Func.comp.id_law F₂₃ F₁₂
 
   infix:101 " ⊙ " =>
-    Fam.Cat.Func.Comp
+    Fam.Cat.Func.comp
 
 
 
-  def Fam.Cat.Func.Comp.congr_left
+  theorem Fam.Cat.Func.comp.congr_left
     {F₂₃ F₂₃' : Func ℂ₂ ℂ₃}
     (F₁₂ : Func ℂ₁ ℂ₂)
     (h₂₃ : F₂₃ ≈ F₂₃')
@@ -451,9 +451,7 @@ section comp
     fun f =>
       h₂₃ (F₁₂.fmap f)
 
-
-
-  protected def Fam.Cat.Func.Comp.congr_right_aux
+  protected theorem Fam.Cat.Func.comp.congr_right_aux
     (F₂₃ : Func ℂ₂ ℂ₃)
     (F₁₂ : Func ℂ₁ ℂ₂)
     {α' β' : ℂ₂.Obj}
@@ -469,7 +467,7 @@ section comp
           F₂₃.fMap.proper eqv
         apply Hom.Equiv.proof _ eqv₂₃
 
-  def Fam.Cat.Func.Comp.congr_right
+  theorem Fam.Cat.Func.comp.congr_right
     (F₂₃ : Func ℂ₂ ℂ₃)
     {F₁₂ F₁₂' : Func ℂ₁ ℂ₂}
     (h₁₂ : F₁₂ ≈ F₁₂')
@@ -477,15 +475,16 @@ section comp
     fun f =>
       let h :=
         h₁₂ f
-      Comp.congr_right_aux F₂₃ F₁₂ (fmap F₁₂' f) f h
+      comp.congr_right_aux F₂₃ F₁₂ (fmap F₁₂' f) f h
 
 
-  /-- `Func.CompFunc` respects congruence laws. -/
-  def Fam.Cat.Func.Comp.Congr
-  : Congr (Func ℂ₂ ℂ₃) (Func ℂ₁ ℂ₂) (Func ℂ₁ ℂ₃) Func.Comp where
+  /-- `Func.comp` respects congruence laws. -/
+  def Fam.Cat.Func.comp.Congr
+  : Congr (Func ℂ₂ ℂ₃) (Func ℂ₁ ℂ₂) (Func ℂ₁ ℂ₃) Func.comp where
     left :=
       congr_left
     right :=
       congr_right
 
 end comp
+

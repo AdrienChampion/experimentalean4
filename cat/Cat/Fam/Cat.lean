@@ -9,14 +9,16 @@ namespace Cat
 
 
 /-- A simple category, basis for categories with families. -/
-structure Fam.Cat where
+structure Fam.Cat.{u_obj, u_hom}
+: Type (max u_obj (u_hom + 1))
+where
   /-- Type of the objects of the category. -/
   Obj
-  : Sort o
+  : Sort u_obj
 
   /-- This returns a `Setoid.Erased` to allow dependent, arbitrary carriers. -/
   Hom
-  : Obj → Obj → Setoid
+  : Obj → Obj → Setoid.{u_hom}
 
 
   /-- Type-level arrow composition.
