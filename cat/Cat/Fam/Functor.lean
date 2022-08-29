@@ -61,7 +61,23 @@ structure Fam.Cat.Func (ℂ₁ ℂ₂ : Cat) where
   /-- Functor identity law. -/
   id_law
     {α : ℂ₁.Obj}
-  : Func.law.id' fObj fMap α
+  : @fMap α α ℂ₁.id ≈ ℂ₂.id
+
+/-- Identity for the target of a source object. -/
+@[simp]
+abbrev Fam.Cat.Func.id
+  {F : Func ℂ₁ ℂ₂}
+  {α : outParam ℂ₁.Obj}
+: F.fObj α ↠ F.fObj α :=
+  ℂ₂.id
+
+/-- Identity for the target of a source object, explicit version. -/
+@[simp]
+abbrev Fam.Cat.Func.id'
+  {F : Func ℂ₁ ℂ₂}
+  (α : outParam ℂ₁.Obj)
+: F.fObj α ↠ F.fObj α :=
+  ℂ₂.id
 
 /-- Maps `ℂ₁`-arrows to `ℂ₂`-arrows (explicit version). -/
 @[simp]
@@ -85,7 +101,7 @@ abbrev Fam.Cat.Func.id_law'
   {F : Func ℂ₁ ℂ₂}
   (α : ℂ₁.Obj)
 :=
-  @Func.id_law ℂ₁ ℂ₂ F α
+  F.id_law (α := α)
 
 /-- Applied version of `F.fMap`. -/
 def Fam.Cat.Func.fmap
@@ -488,3 +504,59 @@ section comp
 
 end comp
 
+
+
+section lemmas
+  variable
+    {ℂ₁ ℂ₂ : Fam.Cat}
+    (F : Fam.Cat.Func ℂ₁ ℂ₂)
+
+
+
+  theorem Fam.Cat.Func.proper_inv
+    {α β : ℂ₁.Obj}
+    {f₁ : α ↠ β}
+    {f₂ : β ↠ α}
+    (h : f₁ ⊚ f₂ ≈ ℂ₁.id)
+  : (F.fMap f₁) ⊚ (F.fMap f₂) ≈ F.id :=
+    let f₁' :=
+      F.fMap f₁
+    let f₂' :=
+      F.fMap f₂
+    let h₁ : f₁' ⊚ f₂' ≈ F.fMap (f₁ ⊚ f₂) :=
+      F.comp_law f₁ f₂
+      |> Setoid.symm
+    let h₂ : f₁' ⊚ f₂' ≈ F.fMap ℂ₁.id :=
+      F.fmap_proper _ _ h
+      |> Setoid.trans h₁
+    let h₃ : f₁' ⊚ f₂' ≈ ℂ₂.id :=
+      F.id_law' β
+      |> Setoid.trans h₂
+    h₃
+
+  /-- Functors preserve the *iso* property over arrows. -/
+  instance instIsoFuncIso
+    {F : Fam.Cat.Func ℂ₁ ℂ₂}
+    {α β : ℂ₁.Obj}
+    (f : α ↠ β)
+    [instIso : Fam.Cat.Iso f]
+  : Fam.Cat.Iso (F.fmap f) :=
+    let fInv' :=
+      F.fmap instIso.inv
+    Fam.Cat.Iso.mk
+      fInv'
+      (F.proper_inv instIso.law_left)
+      (F.proper_inv instIso.law_right)
+  
+
+  /-- Functors preserve the *iso* property over objects. -/
+  instance instIsoObjFuncIsoObj
+    {α β : ℂ₁.Obj}
+    (h_iso : α ≅ β)
+  : F α ≅ F β where
+    iso :=
+      F.fmap h_iso.iso
+    instIso :=
+      instIsoFuncIso h_iso.iso
+
+end lemmas

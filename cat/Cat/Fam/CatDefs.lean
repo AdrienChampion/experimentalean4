@@ -153,6 +153,7 @@ section iso_obj
     instIso : Iso iso
 
   /-- Bring `Iso i.iso` whenever we manipulate `i : IsoObj α β`. -/
+  @[simp]
   instance instIso_of_IsoObj
     [inst : Fam.Cat.IsoObj α β]
   : Fam.Cat.Iso (inst.iso) :=
