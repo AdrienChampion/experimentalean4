@@ -156,12 +156,26 @@ example
 theorem Fam.Cat.Func.fMap_proper
   (F : Func ℂ₁ ℂ₂)
   {α β : ℂ₁.Obj}
+  {f₁ f₂ : α ↠ β}
+: f₁ ≈ f₂ → F.fMap f₁ ≈ F.fMap f₂ :=
+  F.fMap.proper
+/-- `fMap` is proper for `≈`, explicit version. -/
+theorem Fam.Cat.Func.fMap_proper'
+  (F : Func ℂ₁ ℂ₂)
+  {α β : ℂ₁.Obj}
   (f₁ f₂ : α ↠ β)
 : f₁ ≈ f₂ → F.fMap f₁ ≈ F.fMap f₂ :=
   F.fMap.proper
 
 /-- `fmap` is proper for `≈`. -/
 theorem Fam.Cat.Func.fmap_proper
+  (F : Func ℂ₁ ℂ₂)
+  {α β : ℂ₁.Obj}
+  {f₁ f₂ : α ↠ β}
+: f₁ ≈ f₂ → F.fmap f₁ ≈ F.fmap f₂ :=
+  F.fMap.proper
+/-- `fmap` is proper for `≈`. -/
+theorem Fam.Cat.Func.fmap_proper'
   (F : Func ℂ₁ ℂ₂)
   {α β : ℂ₁.Obj}
   (f₁ f₂ : α ↠ β)
@@ -527,7 +541,7 @@ section lemmas
       F.comp_law f₁ f₂
       |> Setoid.symm
     let h₂ : f₁' ⊚ f₂' ≈ F.fMap ℂ₁.id :=
-      F.fmap_proper _ _ h
+      F.fmap_proper h
       |> Setoid.trans h₁
     let h₃ : f₁' ⊚ f₂' ≈ ℂ₂.id :=
       F.id_law' β
@@ -558,5 +572,90 @@ section lemmas
       F.fmap h_iso.iso
     instIso :=
       instIsoFuncIso h_iso.iso
+
+
+
+  /-- Proof that a functor is *faithful*, *i.e.* `F f ≈ F g → f ≈ g`. -/
+  class Fam.Cat.Func.Faithful
+    {ℂ₁ ℂ₂ : Cat}
+    (F : Func ℂ₁ ℂ₂)
+  where
+    /-- Faithfulness law. -/
+    law' :
+      ∀ {α β : ℂ₁.Obj} (f g : α ↠ β),
+        F.fmap f ≈ F.fmap g → f ≈ g
+
+  /-- Same as `Faithful.law'` but `f` and `g` are implicit. -/
+  @[simp]
+  abbrev Fam.Cat.Func.Faithful.law
+    [inst : Faithful F]
+    {α β : ℂ₁.Obj}
+    {f g : α ↠ β}
+  : F.fmap f ≈ F.fmap g → f ≈ g :=
+    inst.law' f g
+
+  /-- Faithfulness is closed under functor composition. -/
+  instance instFaithfulFuncComp
+    (F₂₃ : Fam.Cat.Func ℂ₂ ℂ₃)
+    [inst₂₃ : Fam.Cat.Func.Faithful F₂₃]
+    (F₁₂ : Fam.Cat.Func ℂ₁ ℂ₂)
+    [inst₁₂ : Fam.Cat.Func.Faithful F₁₂]
+  : Fam.Cat.Func.Faithful (F₂₃ ⊙ F₁₂) where
+    law' {α β} (f g) h :=
+      by
+        apply inst₁₂.law
+        apply inst₂₃.law
+        exact h
+
+
+
+  /-- Proof that a functor is *full*, *i.e.* any `h : F α ↠ F β` has a preimage by `F.fmap`. -/
+  class Fam.Cat.Func.Full
+    {ℂ₁ ℂ₂ : Cat}
+    (F : Func ℂ₁ ℂ₂)
+  where
+    /-- Yields the preimage of `h` by `F.fmap`. -/
+    preimage
+      {α β : ℂ₁.Obj}
+      (h : F α ↠ F β)
+    : α ↠ β
+    /-- Proof that `h` and the image of its preimage are equivalent. -/
+    law'
+      {α β : ℂ₁.Obj}
+      (h : F α ↠ F β)
+    : h ≈ F.fmap (preimage h)
+
+  /-- Same as `Full.law'` but `h` is implicit. -/
+  @[simp]
+  abbrev Fam.Cat.Func.Full.law
+    [inst : Full F]
+    {α β : ℂ₁.Obj}
+    {h : F α ↠ F β}
+  : h ≈ F.fmap (inst.preimage h) :=
+    inst.law' h
+
+  /-- Fullness is closed under functor composition. -/
+  instance instFullFuncComp
+    (F₂₃ : Fam.Cat.Func ℂ₂ ℂ₃)
+    [inst₂₃ : Fam.Cat.Func.Full F₂₃]
+    (F₁₂ : Fam.Cat.Func ℂ₁ ℂ₂)
+    [inst₁₂ : Fam.Cat.Func.Full F₁₂]
+  : Fam.Cat.Func.Full (F₂₃ ⊙ F₁₂) where
+    preimage h :=
+      inst₂₃.preimage h
+      |> inst₁₂.preimage
+    law' g₃ :=
+      let g₂ :=
+        inst₂₃.preimage g₃
+      let g₁ :=
+        inst₁₂.preimage g₂
+      let h : g₃ ≈ F₂₃.fmap g₂ :=
+        inst₂₃.law
+      let h' : g₂ ≈ F₁₂.fmap g₁ :=
+        inst₁₂.law
+      let h : g₃ ≈ F₂₃.fmap (F₁₂.fmap g₁) :=
+        F₂₃.fmap_proper h'
+        |> Setoid.trans h
+      h
 
 end lemmas
