@@ -11,7 +11,7 @@ namespace Cat
 
 
 /-- A natural transformation -/
-structure Fam.Cat.Func.NatTrans
+structure Fam.Cat.NatTrans
   (F F' : Func ℂ₁ ℂ₂)
 where
   trans
@@ -24,7 +24,7 @@ where
   ≈ (F'.fmap f) ⊚ (trans α)
 
 /-- Two transformations are equivalent if they map `α` to the same `α'`. -/
-abbrev Fam.Cat.Func.NatTrans.equiv
+abbrev Fam.Cat.NatTrans.equiv
   {F F' : Func ℂ₁ ℂ₂}
   (T T' : NatTrans F F')
 : Prop :=
@@ -33,11 +33,11 @@ abbrev Fam.Cat.Func.NatTrans.equiv
 /-- Gives access to `≈` notation (`\~~`). -/
 instance instHasEquivNatTrans
   {F F' : Fam.Cat.Func ℂ₁ ℂ₂}
-: HasEquiv (Fam.Cat.Func.NatTrans F F') where
+: HasEquiv (Fam.Cat.NatTrans F F') where
   Equiv T T' := T.equiv T'
 
 /-- Natural transformation equivalence is reflexive. -/
-theorem Fam.Cat.Func.NatTrans.equiv.refl
+theorem Fam.Cat.NatTrans.equiv.refl
   (T : NatTrans F F')
 : T ≈ T :=
   by
@@ -45,7 +45,7 @@ theorem Fam.Cat.Func.NatTrans.equiv.refl
     apply Setoid.refl
 
 /-- Natural transformation equivalence is symmetric. -/
-theorem Fam.Cat.Func.NatTrans.equiv.symm
+theorem Fam.Cat.NatTrans.equiv.symm
   {T T' : NatTrans F F'}
 : T ≈ T' → T' ≈ T :=
   by
@@ -54,7 +54,7 @@ theorem Fam.Cat.Func.NatTrans.equiv.symm
     exact h α
 
 /-- Natural transformation equivalence is transitive. -/
-theorem Fam.Cat.Func.NatTrans.equiv.trans
+theorem Fam.Cat.NatTrans.equiv.trans
   {T T' T'' : NatTrans F F'}
 : T ≈ T' → T' ≈ T'' → T ≈ T'' :=
   by
@@ -63,7 +63,7 @@ theorem Fam.Cat.Func.NatTrans.equiv.trans
     exact h'' α
 
 /-- Natural transformation equivalence is an actual equivalence. -/
-def Fam.Cat.Func.NatTrans.equiv.iseqv
+def Fam.Cat.NatTrans.equiv.iseqv
   {F F' : Func ℂ₁ ℂ₂}
 : @Equivalence (NatTrans F F') NatTrans.equiv :=
   ⟨refl, symm, trans⟩
@@ -73,16 +73,16 @@ def Fam.Cat.Func.NatTrans.equiv.iseqv
 /-- Natural transformations define a setoid in the Lean sense. -/
 instance instZetoidNatTrans
   {F F' : Fam.Cat.Func ℂ₁ ℂ₂}
-: Zetoid (Fam.Cat.Func.NatTrans F F') where
+: Zetoid (Fam.Cat.NatTrans F F') where
   r :=
-    Fam.Cat.Func.NatTrans.equiv
+    Fam.Cat.NatTrans.equiv
   iseqv :=
-    Fam.Cat.Func.NatTrans.equiv.iseqv
+    Fam.Cat.NatTrans.equiv.iseqv
 
 
 
 /-- Setoid defined by natural transformations. -/
-def Fam.Cat.Func.NatTrans.toSetoid
+def Fam.Cat.NatTrans.toSetoid
   (F F' : Func ℂ₁ ℂ₂)
 : Setoid :=
   ⟨NatTrans F F', instZetoidNatTrans⟩
@@ -95,14 +95,14 @@ section yoneda_map
     {α β γ : ℂ.Obj}
 
   /-- Composes `f` with `g`. -/
-  def Fam.Cat.Func.NatTrans.yoneMap.arrow
+  def Fam.Cat.NatTrans.yoneMap.arrow
     (f : α ↠ β)
     (g : β ↠ γ)
   : α ↠ γ :=
     g ⊚ f
 
   /-- `arrow` is proper for `≈`. -/
-  theorem Fam.Cat.Func.NatTrans.yoneMap.arrow.proper
+  theorem Fam.Cat.NatTrans.yoneMap.arrow.proper
     (f : α ↠ β)
     {g g' : β ↠ γ}
   : g ≈ g' → arrow f g ≈ arrow f g' :=
@@ -112,7 +112,7 @@ section yoneda_map
       exact h
 
   /-- `Morph` defined by `arrow f` -/
-  def Fam.Cat.Func.NatTrans.yoneMap
+  def Fam.Cat.NatTrans.yoneMap
     (f : α ↠ β)
     (γ : ℂ.Obj)
   : (ℂ.Hom β γ) ⇒ (ℂ.Hom α γ) where
@@ -124,27 +124,61 @@ section yoneda_map
 
 
   /-- `yoneMap` verifies the natural transformation law. -/
-  theorem Fam.Cat.Func.NatTrans.yoneMap.natTransLaw
+  theorem Fam.Cat.NatTrans.yoneMap.natTransLaw
     (f : α ↠ β)
     {α' β' : ℂ.Obj}
     (g : α' ↠ β')
-  : (yoneMap f β') ⊚ (FunSET β |>.fmap g)
-  ≈ (FunSET α |>.fmap g) ⊚ (yoneMap f α')
+  : (yoneMap f β') ⊚ (Func.FunSET β |>.fmap g)
+  ≈ (Func.FunSET α |>.fmap g) ⊚ (yoneMap f α')
   :=
     by
       intro a
-      simp [yoneMap, arrow, fmap, FunSET, kompose, compose', Morph.app2]
+      simp [yoneMap, arrow, Func.fmap, Func.FunSET, kompose, compose', Morph.app2]
       simp [SET, Comp.toCat, Morph.compose.Comp, Morph.compose]
 
   /-- Yoneda map `Morph` is a natural transformation. -/
-  def Fam.Cat.Func.NatTrans.yoneNatTrans
+  def Fam.Cat.NatTrans.yoneNatTrans
     {ℂ : Cat}
     {α β : ℂ.Obj}
     (f : α ↠ β)
-  : NatTrans (FunSET β) (FunSET α) where
+  : NatTrans (Func.FunSET β) (Func.FunSET α) where
     trans γ :=
       yoneMap f γ
     law g :=
       yoneMap.natTransLaw f g
 
 end yoneda_map
+
+
+
+/-! ## Natural transformation composition -/
+section comp
+  variable
+    {ℂ₁ ℂ₂ : Fam.Cat}
+    {F G H : Fam.Cat.Func ℂ₁ ℂ₂}
+    (T : Fam.Cat.NatTrans F G)
+    (T' : Fam.Cat.NatTrans G H)
+
+  /-- Natural transformation (vertical) composition `∘v`. -/
+  def Fam.Cat.NatTrans.comp
+    (α : ℂ₁.Obj)
+  : F α ↠ H α :=
+    (T'.trans α) ⊚ (T.trans α)
+
+  infixr:67 " ∘v " =>
+    Fam.Cat.NatTrans.comp
+
+  -- def Fam.Cat.NatTrans.comp.toNatTrans
+  -- : NatTrans F H where
+  --   trans :=
+  --     NatTrans.comp T T'
+  --   law {α β} f :=
+  --     by
+  --       simp [comp]
+  --       let h :=
+  --         T.law f
+  --       let h :=
+  --         ℂ₂.congr.right (T'.trans β) h
+        
+
+end comp

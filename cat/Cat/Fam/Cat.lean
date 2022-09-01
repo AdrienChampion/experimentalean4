@@ -82,9 +82,27 @@ abbrev Fam.Cat.kompose
 : (β ↠ γ) → (α ↠ β) → (α ↠ γ) :=
   ⟦ℂ.compose'⟧
 
-
 infixr:100 " ⊚ " =>
   Fam.Cat.kompose
+
+def Fam.Cat.kompose.assoc
+  {ℂ : Cat}
+  {α β γ δ : ℂ.Obj}
+  (f : γ ↠ δ)
+  (g : β ↠ γ)
+  (h : α ↠ β)
+: f ⊚ (g ⊚ h) ≈ (f ⊚ g) ⊚ h :=
+  ℂ.compose_assoc f g h
+
+def Fam.Cat.kompose.assoc.symm
+  {ℂ : Cat}
+  {α β γ δ : ℂ.Obj}
+  (f : γ ↠ δ)
+  (g : β ↠ γ)
+  (h : α ↠ β)
+: (f ⊚ g) ⊚ h ≈ f ⊚ (g ⊚ h) :=
+  Fam.Cat.kompose.assoc f g h
+  |> Setoid.symm
 
 
 

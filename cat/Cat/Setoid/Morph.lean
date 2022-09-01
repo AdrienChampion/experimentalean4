@@ -78,15 +78,15 @@ section Morph
     /-- `Morph.equiv` is symmetric. -/
     def Morph.equiv.symm
       {f g : α ⇒ β}
-      (h : f ≈ g)
+      (h : equiv f g)
     : g ≈ f :=
       (h · |> β.symm)
 
     /-- `Morph.equiv` is transitive. -/
     def Morph.equiv.trans
       {f g h : α ⇒ β}
-      (eqFG : f ≈ g)
-      (eqGH : g ≈ h)
+      (eqFG : equiv f g)
+      (eqGH : equiv g h)
     : f ≈ h :=
       fun a =>
         β.trans (eqFG a) (eqGH a)
@@ -95,6 +95,15 @@ section Morph
     def Morph.equiv.iseqv
     : @Equivalence (α ⇒ β) Morph.equiv :=
       ⟨refl, symm, trans⟩
+
+
+
+    def Morph.equiv.rewrite
+      {f g h : α ⇒ β}
+      (self : f ≈ g)
+      (subgoal : f ≈ h)
+    : g ≈ h :=
+      self.symm.trans subgoal
 
 
 
@@ -154,15 +163,6 @@ section Morph
 
   infix:100 " ∘m " =>
     Morph.kompose
-
-  /-- Morphism composition (`∘M`) is associative. -/
-  theorem Morph.kompose.assoc
-    (f : γ ⇒ δ)
-    (g : β ⇒ γ)
-    (h : α ⇒ β)
-  : f ∘M (g ∘M h) ≈ (f ∘M g) ∘M h :=
-    fun a =>
-      by simp [compose, δ.refl]
 
 
 

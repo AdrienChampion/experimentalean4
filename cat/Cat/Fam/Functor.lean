@@ -422,16 +422,16 @@ section comp
   : Func.law.comp (Func.comp.fObj F₂₃ F₁₂) (Func.comp.fMapMorph F₂₃ F₁₂) f g :=
     by
       calc
-        F₂₃.fMap.map
-          (F₁₂.fMap.map (f ⊚ g))
-        ≈ F₂₃.fMap.map
-          ((F₁₂.fMap.map f) ⊚ (F₁₂.fMap.map g))
+        F₂₃.fMap
+          (F₁₂.fMap (f ⊚ g))
+        ≈ F₂₃.fMap
+          ((F₁₂.fMap f) ⊚ (F₁₂.fMap g))
         :=
           F₁₂.comp_law f g
           |> F₂₃.fMap.proper
         
         _
-        ≈ (F₂₃.fMap.map $ F₁₂.fMap.map f) ⊚ (F₂₃.fMap.map $ F₁₂.fMap.map g)
+        ≈ (F₂₃.fMap $ F₁₂.fMap f) ⊚ (F₂₃.fMap $ F₁₂.fMap g)
         :=
           by
             simp
