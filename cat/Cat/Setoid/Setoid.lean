@@ -91,7 +91,16 @@ namespace Setoid
     {a b c : self.Carrier}
   : a ≈ b → b ≈ c → a ≈ c:=
     self.instZetoid.trans
+
+  def r.refl :=
+    @Setoid.refl
+  def r.symm :=
+    @Setoid.symm
+  def r.trans :=
+    @Setoid.trans
 end Setoid
+
+
 
 instance instTransSetoidRel
   {self : Setoid}

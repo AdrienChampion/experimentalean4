@@ -79,6 +79,27 @@ instance instZetoidNatTrans
   iseqv :=
     Fam.Cat.NatTrans.equiv.iseqv
 
+/-- Equivalence over natural transformations is transitive. -/
+instance instTransNatTransEquiv
+  {F F' : Fam.Cat.Func ℂ₁ ℂ₂}
+: Trans
+  (Fam.Cat.NatTrans.equiv (F := F) (F' := F'))
+  Fam.Cat.NatTrans.equiv
+  Fam.Cat.NatTrans.equiv
+:=
+  ⟨Fam.Cat.NatTrans.equiv.trans⟩
+
+/-- Equivalence over natural transformations is transitive. -/
+instance instTransNatTransHasEquiv
+  {F F' : Fam.Cat.Func ℂ₁ ℂ₂}
+: Trans
+  (instHasEquivNatTrans (F := F) (F' := F')).Equiv
+  instHasEquivNatTrans.Equiv
+  instHasEquivNatTrans.Equiv
+:=
+  instTransNatTransEquiv
+
+
 
 
 /-- Setoid defined by natural transformations. -/
@@ -156,29 +177,72 @@ section comp
   variable
     {ℂ₁ ℂ₂ : Fam.Cat}
     {F G H : Fam.Cat.Func ℂ₁ ℂ₂}
-    (T : Fam.Cat.NatTrans F G)
-    (T' : Fam.Cat.NatTrans G H)
+    (T : Fam.Cat.NatTrans G H)
+    (T' : Fam.Cat.NatTrans F G)
 
   /-- Natural transformation (vertical) composition `∘v`. -/
-  def Fam.Cat.NatTrans.comp
+  @[simp]
+  abbrev Fam.Cat.NatTrans.comp.raw
     (α : ℂ₁.Obj)
   : F α ↠ H α :=
-    (T'.trans α) ⊚ (T.trans α)
+    (T.trans α) ⊚ (T'.trans α)
+
+  def Fam.Cat.NatTrans.comp
+  : NatTrans F H where
+    trans :=
+      comp.raw T T'
+    law {α β} f :=
+      by
+        simp [comp.raw]
+        calc
+          (trans T β ⊚ trans T' β) ⊚ Func.fmap F f
+          ≈ trans T β ⊚ trans T' β ⊚ Func.fmap F f
+          :=
+            by
+              apply Setoid.symm
+              apply ℂ₂.compose_assoc
+          _
+          ≈ trans T β ⊚ Func.fmap G f ⊚ trans T' α
+          :=
+            T'.law f
+            |> ℂ₂.congr.right _
+          _
+          ≈ (trans T β ⊚ Func.fmap G f) ⊚ trans T' α
+          :=
+            ℂ₂.compose_assoc _ _ _
+          _
+          ≈ (Func.fmap H f ⊚ trans T α) ⊚ trans T' α
+          :=
+            T.law f
+            |> ℂ₂.congr.left _
+          _
+          ≈ Func.fmap H f ⊚ trans T α ⊚ trans T' α
+          :=
+            by
+              apply Setoid.symm
+              apply ℂ₂.compose_assoc
+
+
 
   infixr:67 " ∘v " =>
-    Fam.Cat.NatTrans.comp
+    Fam.Cat.NatTrans.comp.toNatTrans
 
-  -- def Fam.Cat.NatTrans.comp.toNatTrans
-  -- : NatTrans F H where
-  --   trans :=
-  --     NatTrans.comp T T'
-  --   law {α β} f :=
-  --     by
-  --       simp [comp]
-  --       let h :=
-  --         T.law f
-  --       let h :=
-  --         ℂ₂.congr.right (T'.trans β) h
-        
+
+
+  def Fam.Cat.NatTrans.comp.congr
+  : Congr (NatTrans H G) (NatTrans F H) (NatTrans F G) comp where
+    left _ h α :=
+      ℂ₂.congr.left _ (h α)
+    right _ _ _ h α :=
+      ℂ₂.congr.right _ (h α)
+
+
+
+  def Fam.Cat.NatTrans.Comp
+  : Comp (Func ℂ₁ ℂ₂) (NatTrans.toSetoid) where
+    comp :=
+      NatTrans.comp
+    congr :=
+      NatTrans.comp.congr
 
 end comp

@@ -27,14 +27,14 @@ section congr
     (compose : α → β → γ)
   where
     left
-      {f f' : α}
+      {f f' : outParam α}
       (g : β)
     : f ≈ f'
     → compose f g ≈ compose f' g
 
     right
       (f : α)
-      {g g' : β}
+      {g g' : outParam β}
     : g ≈ g'
     → compose f g ≈ compose f g'
 
