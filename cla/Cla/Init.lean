@@ -1,9 +1,116 @@
+import Lean.Data.HashMap
+
+section HashMap
+  export Std (HashMap)
+
+  def Std.HashMap.withCapacity
+  :=
+    @Std.mkHashMap
+end HashMap
+
+
+
+section EStateM
+  def EStateM.bail! :=
+    @EStateM.throw
+
+  export EStateM (Result bail!)
+end EStateM
+
+
 def 𝕂
   {α : Type u}
   {β : Type v}
   (val : β)
 : α → β :=
   fun _ => val
+
+
+
+def plural
+  {α : Type u}
+  (notPlural : α)
+  (plural : α)
+: Nat → α
+| 0 | 1 => notPlural
+| _ => plural
+
+def plural.s
+: Nat → String :=
+  plural "" "s"
+
+
+
+def EStateM.mapError
+  (self : EStateM ε σ α)
+  (f : ε → ε')
+: EStateM ε' σ α :=
+  do
+    let state ←
+      get
+    match self.run state with
+    | .ok res state =>
+      set state
+      pure res
+    | .error err state =>
+      set state
+      Result.error (f err)
+
+
+
+section ArrayIdx
+  /-- Monad version of [`Array.foldlIdx`]. -/
+  @[inline]
+  def Array.foldlIdxM
+    {α : Type u}
+    {β : Type v}
+    {m : Type v → Type w}
+    [Monad m]
+    (as : Array α)
+    (f : β → Fin as.size → α → m β)
+    (init : β)
+  : m β :=
+    let rec @[specialize] foldl
+      (i j : Nat)
+      (inv : i + j = as.size)
+      (acc : β)
+    : m β := do
+      match i, inv with
+      | 0,    _  => pure acc
+      | i+1, inv =>
+        have : j < as.size := by
+          rw [← inv, Nat.add_assoc, Nat.add_comm 1 j, Nat.add_comm]
+          apply Nat.le_add_right
+        let idx : Fin as.size := ⟨j, this⟩
+        have : i + (j + 1) = as.size := by rw [← inv, Nat.add_comm j 1, Nat.add_assoc]
+        let acc ← f acc idx (as.get idx)
+        foldl i (j+1) this acc
+    foldl as.size 0 rfl init
+
+  /-- Folds left over the elements and their indices as `Fin self.size`. -/
+  def Array.foldlIdx
+    (self : Array α)
+    (fold : β → Fin self.size → α → β)
+    (init : β)
+  : β :=
+    self.foldlIdxM fold init
+    |> Id.run
+
+  def Array.foldlIdx!
+    (self : Array α)
+    (fold : β → Fin self.size → α → Except String β)
+    (init : β)
+  : Except String β :=
+    self.foldlIdxM fold init
+    
+
+  /-- Type of a legal index of `self`. -/
+  def Array.Idx
+    (self : Array α)
+  : Type :=
+    Fin (self.size)
+end ArrayIdx
+
 
 
 inductive Either
@@ -136,105 +243,16 @@ section parse
   instance instToStringParseErr
   : ToString Parse.Err :=
     ⟨Parse.Err.toString⟩
-
-
-
-  inductive Parse.Res
-    (α : Sort u)
-  | ok : α → Res α
-  | err : Err → Res α
-
-  export Parse (Res)
 end parse
 
 
+section result
+  export EStateM (Result)
 
-section validate
-  structure Validator (In : Sort v) (Out : Sort u) where
-    validate : In → Out
-
-  /-- Identity validator. -/
-  protected def Validator.id
-    (α : Sort u)
-  : Validator α α :=
-    ⟨id⟩
-
-  /-- `Unit` to `Unit` validator. -/
-  def Validator.unit
-  : Validator Unit Unit :=
-    ⟨id⟩
-  
-  /-- Constant validator. -/
-  def Validator.const
-    {In : Sort u}
-    {Out : Sort v}
-    (val : Out)
-  : Validator In Out :=
-    ⟨fun _ => val⟩
-end validate
-
-
-
-section opt
-  structure Opt.Flag where
-    long : String
-    short : Char
-    desc : String
-  deriving Repr, BEq
-
-  inductive Opt.Card
-    (α : Sort u)
-  | none : Card α
-  | one : Validator String α → Card α
-  | many : Validator (List String) α → Card α
-
-  structure Opt where
-  innerMk ::
-    flag : Opt.Flag
-    Out : Sort u
-    card : Opt.Card Out
-
-  def Opt.mk
-    (flag : Opt.Flag)
-    {Out : Sort u}
-    (card : Opt.Card Out)
-  : Opt :=
-    ⟨flag, Out, card⟩
-end opt
-
-
-
-section cxt
-  structure Cxt.Run.TopState where
-    args : List Parse.Arg
-    errsRev : List Parse.Err
-
-  structure Cxt.Run.ArgState where
-    top : TopState
-    arg : Parse.Arg
-    errsRev : List String
-
-  def Cxt.Run.ArgState.toTop
-    (self : ArgState)
-  : TopState :=
-    let mkErr :=
-      Parse.Err.mk self.arg
-    let errs :=
-      self.errsRev.map mkErr
-    { self.top with
-      errsRev :=
-        errs ++ self.top.errsRev
-    }
-
-
-
-  def Cxt.Run.Top
-    (α : Type)
-  :=
-    StateM TopState α
-
-  def Cxt.Run.Arg
-    (α : Type)
-  :=
-    StateM ArgState α
-end cxt
+  abbrev Res :=
+    Result
+  abbrev IRes :=
+    Result String
+  abbrev PRes :=
+    Result Parse.Err
+end result

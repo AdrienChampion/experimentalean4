@@ -152,52 +152,32 @@ section Parse
 
 
 
+  /-- [`StateM`] with [`Parse`] as the state. -/
   abbrev EParseM
     (ε : Type)
-    (α : Type)
   :=
-    EStateM ε Parse α
+    EStateM ε Parse
 
+  /-- [`StateM`] with [`String`] errors and [`Parse`] state. -/
   abbrev IParseM :=
-    EParseM String
+    EStateM String Parse
 
-  abbrev ParseM
-    (α : Type)
-  :=
-    EStateM Empty Parse α
+  /-- [`StateM`] with [`Parse.Err`] errors and [`Parse`] state. -/
+  abbrev ParseM :=
+    EStateM Parse.Err Parse
 
+  /-- Turns an [`IParseM`] into a [`ParseM`] by adding the argument on which the error occured. -/
   def IParseM.errOnArg
     (self : IParseM α)
     (arg : Parse.Arg)
-  : EParseM Parse.Err α :=
-    do
-      let parser ← get
-      match EStateM.run self parser with
-      | .ok res parser =>
-        set parser
-        pure res
-      | .error msg parser =>
-        set parser
-        Parse.Err.mk arg msg
-        |> EStateM.throw
+  : ParseM α :=
+    self.mapError (Parse.Err.mk arg)
 
-  abbrev EParseM.run :=
-    @EStateM.run
-
-  abbrev IParseM.run :=
-    @EStateM.run
-
-  abbrev ParseM.run :=
-    @EStateM.run
-
-  abbrev EParseM.run' :=
-    @EStateM.run'
-
-  abbrev IParseM.run' :=
-    @EStateM.run'
-
-  abbrev ParseM.run' :=
-    @EStateM.run'
+  /-- Turns an [`IParseM`] into a [`ParseM`] for plain-value failures. -/
+  def IParseM.errOnVal
+    (self : IParseM α)
+  : ParseM α :=
+    self.mapError (Parse.Err.mk none)
 
   /-- Reads an argument `arg` iff one exists and `consume arg`. -/
   def Parse.readIfM
@@ -255,10 +235,10 @@ section Parse
         set self
         pure v
       | some arg =>
-        EStateM.throw
+        bail!
           s! "expected argument, got `{arg}`"
       | none =>
-        EStateM.throw
+        bail!
           s! "expected argument, got nothing"
       
 
@@ -295,7 +275,7 @@ section Parse
       
       if let some min := min then
         if count < min then
-          throw s! "expected at least {min} arguments, got {count}"
+          bail! s! "expected at least {min} arguments, got {count}"
 
       pure acc
 
@@ -358,7 +338,7 @@ section Parse
           if acc.isEmpty then s else s! "{acc}, {s}"
         )
         ""
-    IParseM.run' loop ex1
+    loop.run' ex1
   #eval Parse.example.ex1.test1
 
 end Parse
