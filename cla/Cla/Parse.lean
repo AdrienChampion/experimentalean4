@@ -1,5 +1,10 @@
 import Cla.Init
 
+
+
+/-! # Abstract command-line argument parser -/
+
+
 def String.splitCommas
   (s : String)
 : List Substring :=
@@ -14,7 +19,11 @@ def String.claKindDo
   (sepAction : α)
   (s : String)
 : α :=
-  match (Pos.mk 0 |> s.get?, Pos.mk 1 |> s.get?, Pos.mk 2 |> s.get?) with
+  match (
+      String.Pos.mk 0 |> s.get?,
+      String.Pos.mk 1 |> s.get?,
+      String.Pos.mk 2 |> s.get?
+  ) with
   | ('-', '-', none) =>
     sepAction
   | ('-', '-', some _) =>
@@ -59,6 +68,12 @@ def String.isSep
     (𝕂 false)
     (𝕂 false)
     true
+
+
+
+namespace Cla
+
+
 
 /-- Argument handler.
 
@@ -342,21 +357,3 @@ section Parse
   #eval Parse.example.ex1.test1
 
 end Parse
-
-
-
-structure Flag
-  (μ : Type → Type u)
-  [Monad μ]
-  (α : Type)
-where
-  short : Option Char
-  long : Option String
-  parseArgs : IParseM α
-
--- structure PlainVal
---   (μ : Type → Type u)
---   [Monad μ]
---   (α : Type)
--- where
---   validate 

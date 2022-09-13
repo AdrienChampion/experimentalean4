@@ -113,7 +113,7 @@ end ArrayIdx
 
 
 
-inductive Either
+inductive Cla.Either
   (α : outParam (Sort u))
   (β : outParam (Sort u))
 | left : α → Either α β
@@ -121,31 +121,31 @@ inductive Either
 
 section Either
   variable
-    (self : Either α β)
+    (self : Cla.Either α β)
 
-  def Either.collapse
+  def Cla.Either.collapse
     (f : α → γ)
     (g : β → γ)
   : Either α β → γ
     | left a => f a
     | right b => g b
 
-  def Either.left?
+  def Cla.Either.left?
   : Option α :=
     self.collapse some (𝕂 none)
 
-  def Either.right?
+  def Cla.Either.right?
   : Option β :=
     self.collapse (𝕂 none) some
 
-  def Either.mapLeft
+  def Cla.Either.mapLeft
     (f : α → γ)
   : Either γ β :=
     self.collapse
       (f · |> left)
       right
 
-  def Either.mapRight
+  def Cla.Either.mapRight
     (f : β → γ)
   : Either α γ :=
     self.collapse
@@ -155,85 +155,85 @@ end Either
 
 
 section parse
-  inductive Parse.Opt
+  inductive Cla.Parse.Opt
   | long : String → Opt
   | short : Char → Opt
   deriving Repr, BEq
 
-  def Parse.Opt.toString
+  def Cla.Parse.Opt.toString
   : Opt → String
   | long l => s!"--{l}"
   | short s => s!"-{s}"
 
   instance instToStringParseOpt
-  : ToString Parse.Opt :=
-    ⟨Parse.Opt.toString⟩
+  : ToString Cla.Parse.Opt :=
+    ⟨Cla.Parse.Opt.toString⟩
 
 
 
-  inductive Parse.Arg
+  inductive Cla.Parse.Arg
   | val : String → Arg
   | sep : Arg
   | opt : Opt → Arg
   deriving Repr, BEq
 
   section helpers
-    def Parse.Arg.long
+    def Cla.Parse.Arg.long
     : String → Arg :=
       (Opt.long · |> opt)
-    def Parse.Arg.short
+    def Cla.Parse.Arg.short
     : Char → Arg :=
       (Opt.short · |> opt)
 
-    def Parse.Arg.isVal
-    : Parse.Arg → Bool
+    def Cla.Parse.Arg.isVal
+    : Cla.Parse.Arg → Bool
     | .val _ => true
     | .sep => false
     | .opt _ => false
 
-    def Parse.Arg.isOpt
-    : Parse.Arg → Bool
+    def Cla.Parse.Arg.isOpt
+    : Cla.Parse.Arg → Bool
     | .val _ => false
     | .sep => false
     | .opt _ => true
 
-    def Parse.Arg.isSep
-    : Parse.Arg → Bool
+    def Cla.Parse.Arg.isSep
+    : Cla.Parse.Arg → Bool
     | .val _ => false
     | .sep => true
     | .opt _ => false
 
-    def Parse.Arg.getVal
-    : Parse.Arg → Option String
+    def Cla.Parse.Arg.getVal
+    : Cla.Parse.Arg → Option String
     | .val v => v
     | .sep => none
     | .opt _ => none
 
-    def Parse.Arg.getOpt
-    : Parse.Arg → Option Opt
+    def Cla.Parse.Arg.getOpt
+    : Cla.Parse.Arg → Option Opt
     | .val _ => none
     | .sep => none
     | .opt o => o
   end helpers
   
-  def Parse.Arg.toString
+  def Cla.Parse.Arg.toString
   : Arg → String
   | .val v => v
   | .sep => "--"
   | .opt o => o.toString
 
   instance instToStringParseArg
-  : ToString Parse.Arg :=
-    ⟨Parse.Arg.toString⟩
+  : ToString Cla.Parse.Arg :=
+    ⟨Cla.Parse.Arg.toString⟩
 
 
 
-  structure Parse.Err where
+  structure Cla.Parse.Err where
     arg : Option Arg
     msg : String
   deriving Repr, BEq
   
-  def Parse.Err.toString
+  def Cla.Parse.Err.toString
     (self : Err)
   : String :=
     if let some arg := self.arg then
@@ -241,8 +241,8 @@ section parse
     else self.msg
 
   instance instToStringParseErr
-  : ToString Parse.Err :=
-    ⟨Parse.Err.toString⟩
+  : ToString Cla.Parse.Err :=
+    ⟨Cla.Parse.Err.toString⟩
 end parse
 
 
@@ -254,5 +254,5 @@ section result
   abbrev IRes :=
     Result String
   abbrev PRes :=
-    Result Parse.Err
+    Result Cla.Parse.Err
 end result
