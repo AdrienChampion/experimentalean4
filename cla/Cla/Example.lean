@@ -1,4 +1,10 @@
-import Cla.Parse
+import Cla.Com
+
+
+
+/-! # An example of using `Cla` -/
+
+namespace Cla.Example
 
 
 
@@ -31,6 +37,13 @@ section Conf
   : Conf := {
     self with
       inputs := input :: self.inputs
+  }
+
+  def Conf.addInputs
+    (inputs : List String)
+  : Conf := {
+    self with
+      inputs := inputs ++ self.inputs
   }
 
   def Conf.revInputs : Conf := {
@@ -116,14 +129,14 @@ end Parse
 
 
 
-namespace Conf.Examples
+namespace Tests
 
   def test
     (args : String)
   : String :=
     let parser :=
       Parse.mk args.splitOn
-    match EParseM.run Conf.clap parser with
+    match EStateM.run Conf.clap parser with
     | .ok conf _ =>
       s! "okay: {reprPrec conf 1}"
     | .error err _ =>
@@ -164,7 +177,87 @@ namespace Conf.Examples
   #eval error₃
 
 
-end Conf.Examples
+end Tests
 
 
 
+namespace Conf.flag
+  def v : Flag Conf :=
+    Flag.withDesc
+      "increases verbosity"
+    |>.withShort 'v'
+    |>.effect (
+      fun () =>
+        do
+          let conf ← get
+          conf.verbDo (fun v => v + 1)
+          |> set
+    )
+
+  def q : Flag Conf :=
+    Flag.withDesc
+      "decreases verbosity"
+    |>.withShort 'q'
+    |>.effect (
+      fun () =>
+        do
+          let conf ← get
+          conf.verbDo (fun v => v - 1)
+          |> set
+    )
+
+  def verb : Flag Conf :=
+    Flag.withDesc
+      s! "sets the verbosity (default {Conf.default.verb})"
+    |>.withLong "verb"
+    |>.argsTake 1
+    |>.effect (
+      fun verb =>
+        do
+          if let some verb := verb.toNat?
+          then
+            let conf ← get
+            conf.verbDo (𝕂 verb)
+            |> set
+    )
+
+  def quiet : Flag Conf :=
+    Flag.withDesc
+      "sets verbosity to zero"
+    |>.withLong "quiet"
+    |>.effect (
+      fun () =>
+        do
+          let conf ← get
+          conf.verbDo (𝕂 0)
+          |> set
+    )
+
+  def inputs : Flag Conf :=
+    Flag.withDesc
+      "inputs, requires two values or more"
+    |>.withLong "inputs"
+    |>.argsAtLeast 2
+    |>.effect (
+      fun (h₁, h₂, tail) =>
+        do
+          let conf ← get
+          conf
+          |>.addInputs [h₁, h₂]
+          |>.addInputs tail
+          |> set
+    )
+end Conf.flag
+
+def Conf.command : Except String <| Comm Conf :=
+  Comm.mkBuilder
+    Conf
+    "myProgram"
+  |>.withFlags [
+    flag.v,
+    flag.q,
+    flag.verb,
+    flag.quiet,
+    flag.inputs
+  ]
+  |>.build

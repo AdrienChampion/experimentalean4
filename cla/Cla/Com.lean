@@ -6,12 +6,23 @@ import Cla.Parse
 
 namespace Cla
 
-structure Validator
+
+
+/-! ## Building blocks -/
+
+
+
+/-- Validates some `In`put.
+
+- `σ` is the type of the state that the validator affects;
+- `α` is the output type, which is currently not used (set to [`Unit`]).
+-/
+abbrev Validator
   (In : Type)
   (σ : Type)
   (α : Type)
-where
-  validate : In → EStateM String σ α
+:=
+  In → EStateM String σ α
 
 
 
@@ -57,50 +68,149 @@ def MProd.countLeft
 
 
 
-/-- Type for a validator that validates at least `min` and at most `max` arguments.
+/-! ## Bounds, specify how many values a flag takes -/
 
-Number of arguments is unbounded if `max = none`. Accepts no argument at all if `max = 0` or `max =
-some m` with `m < min`.
+
+
+/-- An interval with a possibly infinite upper-bound.
+
+Upper-bound is infinite iff `max = none`.
 -/
-abbrev Validator.forMinMax
-  (min : Nat)
-  (max : Option Nat)
-  (σ : Type)
-  (α : Type)
-: Type :=
-  -- `min` strings followed by a list of strings, used for `[min, max]` intervals where `min < max`
-  -- or `max` is `∞`, *i.e.* `none`
-  let minThenList :=
-    Validator (MProd min String <| List String) σ α
+structure ArgSpec.Bounds where
+  min : Nat
+  max : Option Nat
+deriving Repr, BEq
 
-  match max with
-  | some max =>
-    if max = 0 || max < min then
-      Validator Unit σ α
-    else if max = min then
-      Validator (MProd min String Unit) σ α
-    else
+
+
+instance instToStringArgSpecBounds
+: ToString ArgSpec.Bounds where
+  toString self :=
+    let max :=
+      self.max.map
+        (s! "{·}]")
+      |>.getD
+        "∞["
+    s! "[{self.min}, {max}"
+
+namespace ArgSpec.Bounds
+  /-- The interval `[min, max]` with `min ≤ max`. -/
+  def between
+    (min max : Nat)
+    (_legal : min ≤ max := by simp)
+  : Bounds where
+    min := min
+    max := some max
+
+  example : s! "{between 1 7}" = "[1, 7]" := rfl
+  example : s! "{between 3 3}" = "[3, 3]" := rfl
+
+  /-- `[min, ∞[` -/
+  def atLeast
+    (min : Nat)
+  : Bounds where
+    min := min
+    max := none
+
+  example : s! "{atLeast 0}" = "[0, ∞[" := rfl
+  example : s! "{atLeast 7}" = "[7, ∞[" := rfl
+
+  /-- `[0, max]` -/
+  def atMost
+    (max : Nat)
+  : Bounds where
+    min := 0
+    max := some max
+
+  example : s! "{atMost 0}" = "[0, 0]" := rfl
+  example : s! "{atMost 7}" = "[0, 7]" := rfl
+
+  /-- `[n, n]` -/
+  def exact
+    (n : Nat)
+  :=
+    between n n
+
+  example : s! "{exact 0}" = "[0, 0]" := rfl
+  example : s! "{exact 7}" = "[7, 7]" := rfl
+
+  /-- `[0, 0]` -/
+  def default :=
+    exact 0
+
+  /-- `[0, 0]` -/
+  def zero :=
+    exact 0
+
+
+
+  /-! Simple DSL using `⟦` (`\[[`), `⟧` (`\[[`) and `∞` (`\infty`). -/
+  namespace Dsl
+    local syntax "⟦" term ", " term "⟧" : term
+    local syntax "⟦" term ", " "∞" "⟧" : term
+    macro_rules
+    | `(⟦ $min, $max ⟧) =>
+      `(ArgSpec.Bounds.between $min $max)
+    | `(⟦ $min, ∞ ⟧) =>
+      `(ArgSpec.Bounds.atLeast $min)
+  end Dsl
+
+
+
+  /-- Type for a validator that validates at least `min` and at most `max` arguments.
+
+  Number of arguments is unbounded if `max = none`. Accepts no argument at all if `max = 0` or `max =
+  some m` with `m < min`.
+  -/
+  protected abbrev Validator
+    (bounds : ArgSpec.Bounds)
+    (σ : Type)
+    (α : Type)
+  : Type :=
+    let ⟨min, max⟩ := bounds
+    -- `min` strings followed by a list of strings, used for `[min, max]` intervals where `min < max`
+    -- or `max` is `∞`, *i.e.* `none`
+    let finiteArgs : Nat → Type
+      | 0 =>  Unit
+      | 1 => String
+      | min + 1 => MProd min String String
+    let minThenList :=
+      Validator (MProd min String <| List String) σ α
+
+    match max with
+    | some max =>
+      if max = 0 || max < min then
+        Validator Unit σ α
+      else if max = min then
+        Validator (finiteArgs min) σ α
+      else
+        minThenList
+    | none =>
       minThenList
-  | none =>
-    minThenList
+end ArgSpec.Bounds
 
 
 
 structure ArgSpec
   (σ : Type)
+extends
+  ArgSpec.Bounds
 where
-  min :
-    Nat
-  max :
-    Option Nat
   validator :
-    Validator.forMinMax min max σ Unit
+    toBounds.Validator σ Unit
 
 section ArgSpec
   variable
     {σ : Type}
     (self : @&ArgSpec σ)
 
+  def ArgSpec.bounds :=
+    self.toBounds
+
+  /-- A user-friendly description of the number of arguments expected.
+
+  Designed to follow, typically, `"expected ..."`.
+  -/
   def ArgSpec.descCountExpected : String :=
     match (self.min, self.max) with
     | (0, none) => "any number of argument"
@@ -112,6 +222,7 @@ section ArgSpec
       else
         s! "between {min} and {max} argument{plural.s max}"
 
+  /-- Produces an error using [`ArgSpec.descCountExpected`]. -/
   def ArgSpec.countBail! : IParseM α :=
     do
       bail! self.descCountExpected
@@ -119,11 +230,141 @@ end ArgSpec
 
 
 
-structure Flag (σ : Type) where
+/-! ## Building [`Flag`]s with session types -/
+
+
+
+/-- A description. -/
+structure Flag0 (σ : Type) where
+  desc : String
+deriving Repr, BEq
+
+/-- Adds short and/or long names to [`Flag0`]. -/
+structure Flag1 (σ : Type)
+extends Flag0 σ
+where
   short : Option Char
   long : Option String
-  desc : String
-  argSpec : ArgSpec σ
+deriving Repr, BEq
+
+/-- Adds cardinality bounds to [`Flag1`]. -/
+structure Flag2 (σ : Type)
+extends Flag1 σ
+where
+  bounds : ArgSpec.Bounds
+deriving Repr, BEq
+
+/-- Adds arguments specification to [`Flag1`], but **built** from [`Flag2`]. -/
+structure Flag
+  (σ : Type)
+extends Flag1 σ
+where
+  args: ArgSpec σ
+
+
+
+namespace Flag0
+  variable (self : Flag0 σ)
+
+  /-- Sets the flag's short name. -/
+  def withShort (short : Option Char) : Flag1 σ := {
+      self with
+        short
+        long := none
+  }
+
+  /-- Sets the flag's long name. -/
+  def withLong (long : Option String) : Flag1 σ := {
+    self with
+      short := none
+      long
+  }
+end Flag0
+
+namespace Flag1
+  variable (self : Flag1 σ)
+
+  /-- Sets the flag's short name. -/
+  def withShort (short : Option Char) : Flag1 σ := {
+    self with short
+  }
+
+  /-- Sets the flag's long name. -/
+  def withLong (long : Option String) : Flag1 σ := {
+    self with long
+  }
+
+  /-- Specifies the number of arguments expected as an interval. -/
+  def argsIn (bounds : ArgSpec.Bounds) : Flag2 σ := {
+    self with bounds
+  }
+
+  /-- Specifies an arbitrary number of arguments greater than `min`. -/
+  def argsAtLeast (min : Nat) : Flag2 σ := {
+    self with
+      bounds := ArgSpec.Bounds.atLeast min
+  }
+
+  /-- Specifies an arbitrary number of arguments less than `max`. -/
+  def argsAtMost (max : Nat) : Flag2 σ := {
+    self with
+      bounds := ArgSpec.Bounds.atMost max
+  }
+
+  /-- Specifies a precise number of arguments. -/
+  def argsTake (n : Nat) : Flag2 σ := {
+    self with
+      bounds := ArgSpec.Bounds.exact n
+  }
+
+  def effect
+    (validator : ArgSpec.Bounds.zero.Validator σ Unit)
+  : Flag σ := {
+    self with
+      args := ⟨ArgSpec.Bounds.zero, validator⟩
+  }
+end Flag1
+
+namespace Flag2
+  variable (self : Flag2 σ)
+
+  def effect
+    (validator : self.bounds.Validator σ Unit)
+  : Flag σ := {
+    self.toFlag1 with
+      args := ⟨self.bounds, validator⟩
+  }
+end Flag2
+
+namespace Flag
+  def withDesc (desc : String) : Flag0 σ :=
+    ⟨desc⟩
+
+  -- def adapt
+  --   (self : Flag σ)
+  --   (adaptor : EStateM String σ Unit → EStateM String σ' Unit)
+  -- : Flag σ' :=
+  --   let validator : self.args.bounds.Validator σ' Unit :=
+  --     by
+  --       let validator :=
+  --         self.args.validator
+  --       simp [ArgSpec.Bounds.Validator]
+  --       simp [ArgSpec.Bounds.Validator] at validator
+  --       cases h_max : self.args.1.max
+  --       · simp [h_max] at validator
+  --         simp
+  --         intro input
+  --         apply adaptor
+  --         apply validator input
+  --       · simp [h_max] at validator
+  --         simp
+  --         sorry
+  --   let args : ArgSpec σ' :=
+  --     ⟨self.args.bounds, fun i =>
+  --       adaptor ∘ self.args.validator
+  --     ⟩
+  --   { self.toFlag1 with args := ⟨self.args.bounds, fun i => self.validator i |> adaptor⟩ }
+end Flag
 
 
 
@@ -178,7 +419,7 @@ end Flags
 
 
 
-/-- Used to build [`CommBuilder`] and [`Comm`].
+/-- Used to build [`Comm.Builder`] and [`Comm`].
 
 Abstract description of a command, there's no reason to use this directly.
 -/
@@ -192,9 +433,9 @@ where
 
 /-- Stores a [`Flags`] structure.
 
-To build a `Comm` use the [`CommBuilder`], for instance using [`Comm.mkBuilder`].
+To build a `Comm` use the [`Comm.Builder`], for instance using [`Comm.mkBuilder`].
 -/
-abbrev Comm
+def Comm
   (σ : Type)
 :=
   Command (Flags σ)
@@ -203,42 +444,57 @@ abbrev Comm
 
 section builder
   /-- Stores an array of [`Flag`]s. -/
-  abbrev CommBuilder
+  abbrev Comm.Builder
     (σ : Type)
   :=
     Command (Array <| Flag σ)
 
   /-- Empty constructor. -/
-  def CommBuilder.empty
+  def Comm.Builder.empty
     (σ : Type)
     (name : String)
-  : CommBuilder σ :=
+  : Comm.Builder σ :=
     ⟨name, Array.empty⟩
 
   /-- Pushes a flag. -/
-  def CommBuilder.push
-    (self : CommBuilder σ)
+  def Comm.Builder.withFlag
+    (self : Comm.Builder σ)
     (flag : Flag σ)
-  : CommBuilder σ :=
+  : Comm.Builder σ :=
     { self with
       flags := self.flags.push flag
     }
 
+  /-- Adds some flags. -/
+  def Comm.Builder.withFlags
+    (self : Comm.Builder σ)
+    (flags : List (Flag σ))
+  : Comm.Builder σ :=
+    { self with
+      flags := self.flags ++ flags
+    }
+
   /-- Turns the builder into an actual [`Comm`]. -/
-  def CommBuilder.build
-    (self : CommBuilder σ)
+  def Comm.Builder.build
+    (self : Comm.Builder σ)
   : Except String <| Comm σ :=
     do
       let flags ←
         Flags.mk self.flags
       pure ⟨self.name, flags⟩
+
+  /-- Type of flags accepted by a builder. -/
+  protected def Comm.Builder.Flag
+    (_self : Comm.Builder σ)
+  : Type :=
+    Flag σ
 end builder
 
 
 
-/-- Constructor for [`CommBuilder`]. -/
+/-- Constructor for [`Comm.Builder`]. -/
 def Comm.mkBuilder
   (σ : Type)
   (name : String)
-: CommBuilder σ :=
-  CommBuilder.empty σ name
+: Comm.Builder σ :=
+  Comm.Builder.empty σ name
