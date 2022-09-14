@@ -56,16 +56,22 @@ example : MProd 3 Nat String → String
 | (_i, _j, _k, s) => s
 
 
-
-/-- Number of `α` appearing in an [`MProd`].
-
-That's right, it just returns `n`.
--/
-def MProd.countLeft
-  (_ : MProd n α β)
-: Nat :=
-  n
-
+/-- Builds a `μ (MProd min α β)` from `α` and `β` getters. -/
+def MProd.build
+  {μ : Type → Type}
+  [Monad μ]
+  (getα : μ α)
+  (getβ : μ β)
+  (min : Nat)
+: μ <| MProd min α β :=
+  match min with
+  | 0 =>
+    getβ
+  | min + 1 =>
+    do
+      let a ← getα
+      let tail ← MProd.build getα getβ min
+      pure (a, tail)
 
 
 /-! ## Bounds, specify how many values a flag takes -/
@@ -155,6 +161,35 @@ namespace ArgSpec.Bounds
       `(ArgSpec.Bounds.atLeast $min)
   end Dsl
 
+  open Dsl
+
+
+
+  protected abbrev MProd
+    (bounds : ArgSpec.Bounds)
+  : Type :=
+    if bounds.max == some bounds.min then
+      match bounds.min with
+      | 0 => Unit
+      | min + 1 => MProd min String String
+    else
+      MProd bounds.min String <| List String
+
+  example :
+    (Bounds.mk 0 (some 0) |>.MProd) = Unit
+  := rfl
+  example :
+    (Bounds.mk 0 none |>.MProd) = (MProd 0 String <| List String)
+  := rfl
+  example :
+    (Bounds.mk 0 (some 1) |>.MProd) = (MProd 0 String <| List String)
+  := rfl
+  example :
+    (Bounds.mk 7 (some 7) |>.MProd) = (MProd 6 String String)
+  := rfl
+  example :
+    (Bounds.mk 7 (some 8) |>.MProd) = (MProd 7 String <| List String)
+  := rfl
 
 
   /-- Type for a validator that validates at least `min` and at most `max` arguments.
@@ -167,26 +202,65 @@ namespace ArgSpec.Bounds
     (σ : Type)
     (α : Type)
   : Type :=
-    let ⟨min, max⟩ := bounds
-    -- `min` strings followed by a list of strings, used for `[min, max]` intervals where `min < max`
-    -- or `max` is `∞`, *i.e.* `none`
-    let finiteArgs : Nat → Type
-      | 0 =>  Unit
-      | 1 => String
-      | min + 1 => MProd min String String
-    let minThenList :=
-      Validator (MProd min String <| List String) σ α
+    Validator bounds.MProd σ α
 
-    match max with
-    | some max =>
-      if max = 0 || max < min then
-        Validator Unit σ α
-      else if max = min then
-        Validator (finiteArgs min) σ α
-      else
-        minThenList
-    | none =>
-      minThenList
+
+
+
+  section MProdBuild
+    variable
+      (bounds : Bounds)
+      (getArg : IParseM String)
+      (getAll : IParseM <| List String)
+
+    protected def MProd.buildNone
+    : IParseM <| MProd 0 String Unit :=
+      by
+        dsimp [Bounds.MProd]
+        simp
+        apply pure ()
+
+    protected def MProd.buildExact
+      (minMinus1 : Nat)
+    : IParseM <| MProd minMinus1 String String :=
+      MProd.build getArg getArg minMinus1
+
+    protected def MProd.buildMinOnly
+      (min : Nat)
+    : IParseM <| MProd min String <| List String :=
+      MProd.build getArg getAll min
+
+
+
+    protected def MProdRun
+      {σ : outParam Type}
+    : (bounds.Validator σ Unit) → IParseM (EStateM String σ Unit) :=
+      by
+        simp [Bounds.MProd, Bounds.Validator, Validator]
+        cases bounds.max == some bounds.min with
+        | true =>
+          simp
+          cases bounds.min with
+          | zero =>
+            exact fun action =>
+              pure <| action ()
+          | succ min =>
+            simp
+            exact
+              fun action =>
+                do
+                  let input ←
+                    MProd.buildExact getArg min
+                  pure <| action input
+        | false =>
+          simp
+          exact
+            fun action =>
+              do
+                let input ←
+                  MProd.buildMinOnly getArg getAll bounds.min
+                pure <| action input
+  end MProdBuild
 end ArgSpec.Bounds
 
 
@@ -492,9 +566,50 @@ end builder
 
 
 
-/-- Constructor for [`Comm.Builder`]. -/
-def Comm.mkBuilder
-  (σ : Type)
-  (name : String)
-: Comm.Builder σ :=
-  Comm.Builder.empty σ name
+section Comm
+  /-- Constructor for [`Comm.Builder`]. -/
+  def Comm.mkBuilder
+    (σ : Type)
+    (name : String)
+  : Comm.Builder σ :=
+    Comm.Builder.empty σ name
+
+  variable
+    (self : Comm σ)
+
+  def Comm.shortOf
+    (short : String)
+    : IParseM (Flag σ)
+  :=
+    do
+      if let some idx := self.flags.short.find? short
+      then pure <| self.flags.flags.get idx
+      else throw "unexpected short flag"
+
+  def Comm.longOf
+    (long : String)
+    : IParseM (Flag σ)
+  :=
+    do
+      if let some idx := self.flags.long.find? long
+      then pure <| self.flags.flags.get idx
+      else throw "unexpected long flag"
+
+  -- def Comm.runShort (short : String) : IParseM σ :=
+  --   do
+  --     let flag ←
+  --       self.shortOf short
+      
+    
+
+  -- def Comm.run
+  --   (self : Comm σ)
+  --   (parser : Parse)
+  -- : ParseM σ :=
+  --   do
+  --     parser.nextDo
+  --       ()
+
+  -- def Comm.parse
+  --   (args : List String)
+end Comm

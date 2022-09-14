@@ -255,11 +255,10 @@ section Parse
       | none =>
         bail!
           s! "expected argument, got nothing"
-      
 
 
   def Parse.foldFlagArgs
-    (min : Option Nat)
+    (min : Nat)
     (max : Option Nat)
     (fold : α → String → α)
     (init : α)
@@ -288,11 +287,18 @@ section Parse
         | (none, _) =>
           break
       
-      if let some min := min then
-        if count < min then
-          bail! s! "expected at least {min} arguments, got {count}"
-
+      if count < min then
+        bail! s! "expected at least {min} arguments, got {count}"
       pure acc
+
+  def Parse.flagAllArgs
+    (max : Option Nat)
+  : IParseM <| List String :=
+    List.reverse
+    <$>
+    Parse.foldFlagArgs 0 max
+      (fold := fun acc arg => arg :: acc)
+      (init := [])
 
 
 

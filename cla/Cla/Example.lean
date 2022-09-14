@@ -86,7 +86,7 @@ section Parse
     | "inputs" =>
       do
         Parse.foldFlagArgs
-          (min := some 1)
+          (min := 1)
           (max := none)
           (fold := Conf.addInput)
           (init := self)
