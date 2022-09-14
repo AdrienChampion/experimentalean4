@@ -450,6 +450,21 @@ protected innerMk ::
   long : HashMap String flags.Idx
 
 section Flags
+  /-- Creates an empty `Flags`. -/
+  def Flags.empty : Flags σ :=
+    ⟨Array.empty, Std.mkHashMap 0, Std.mkHashMap 0⟩
+
+  def Flags.debug
+    (flags : Flags σ)
+  : IO Unit :=
+    do
+      IO.println "shorts:"
+      for (c, _) in flags.short.toList do
+        IO.println s! "- `{c}`"
+      IO.println "longs:"
+      for (l, _) in flags.long.toList do
+        IO.println s! "- `{l}`"
+
   /-- Constructor. -/
   def Flags.mk
     (flags : Array (Flag σ))
@@ -470,7 +485,7 @@ section Flags
         let short ←
           if let some c := flag.short then
             let (short, notNew) :=
-              short.insert' s!"c" idx
+              short.insert' s!"{c}" idx
             if notNew then
               throw s! "two flags have the same short name `-{c}`"
             else
@@ -493,7 +508,7 @@ end Flags
 
 
 
-/-- Used to build [`Comm.Builder`] and [`Comm`].
+/-- Used to build [`Com.Builder`] and [`Com`].
 
 Abstract description of a command, there's no reason to use this directly.
 -/
@@ -502,82 +517,88 @@ structure Command
 where
   name : String
   flags : F
+deriving Inhabited
 
 
 
 /-- Stores a [`Flags`] structure.
 
-To build a `Comm` use the [`Comm.Builder`], for instance using [`Comm.mkBuilder`].
+To build a `Com` use the [`Com.Builder`], for instance using [`Com.mkBuilder`].
 -/
-def Comm
+def Com
   (σ : Type)
 :=
   Command (Flags σ)
+
+instance instInhabitedCom
+  [Inhabited σ]
+: Inhabited <| Com σ where
+  default := ⟨"default", Flags.empty⟩
 
 
 
 section builder
   /-- Stores an array of [`Flag`]s. -/
-  abbrev Comm.Builder
+  abbrev Com.Builder
     (σ : Type)
   :=
     Command (Array <| Flag σ)
 
   /-- Empty constructor. -/
-  def Comm.Builder.empty
+  def Com.Builder.empty
     (σ : Type)
     (name : String)
-  : Comm.Builder σ :=
+  : Com.Builder σ :=
     ⟨name, Array.empty⟩
 
   /-- Pushes a flag. -/
-  def Comm.Builder.withFlag
-    (self : Comm.Builder σ)
+  def Com.Builder.withFlag
+    (self : Com.Builder σ)
     (flag : Flag σ)
-  : Comm.Builder σ :=
+  : Com.Builder σ :=
     { self with
       flags := self.flags.push flag
     }
 
   /-- Adds some flags. -/
-  def Comm.Builder.withFlags
-    (self : Comm.Builder σ)
+  def Com.Builder.withFlags
+    (self : Com.Builder σ)
     (flags : List (Flag σ))
-  : Comm.Builder σ :=
+  : Com.Builder σ :=
     { self with
       flags := self.flags ++ flags
     }
 
-  /-- Turns the builder into an actual [`Comm`]. -/
-  def Comm.Builder.build
-    (self : Comm.Builder σ)
-  : Except String <| Comm σ :=
+  /-- Turns the builder into an actual [`Com`]. -/
+  def Com.Builder.build
+    (self : Com.Builder σ)
+  : Except String <| Com σ :=
     do
       let flags ←
         Flags.mk self.flags
       pure ⟨self.name, flags⟩
 
   /-- Type of flags accepted by a builder. -/
-  protected def Comm.Builder.Flag
-    (_self : Comm.Builder σ)
+  protected def Com.Builder.Flag
+    (_self : Com.Builder σ)
   : Type :=
     Flag σ
 end builder
 
 
 
-section Comm
-  /-- Constructor for [`Comm.Builder`]. -/
-  def Comm.mkBuilder
+section Com
+  /-- Constructor for [`Com.Builder`]. -/
+  def Com.mkBuilder
     (σ : Type)
     (name : String)
-  : Comm.Builder σ :=
-    Comm.Builder.empty σ name
+  : Com.Builder σ :=
+    Com.Builder.empty σ name
 
   variable
-    (self : Comm σ)
+    (self : Com σ)
 
-  def Comm.shortOf
+  def Com.shortOf
     (short : String)
     : IParseM (Flag σ)
   :=
@@ -586,7 +607,7 @@ section Comm
       then pure <| self.flags.flags.get idx
       else throw "unexpected short flag"
 
-  def Comm.longOf
+  def Com.longOf
     (long : String)
     : IParseM (Flag σ)
   :=
@@ -595,21 +616,21 @@ section Comm
       then pure <| self.flags.flags.get idx
       else throw "unexpected long flag"
 
-  -- def Comm.runShort (short : String) : IParseM σ :=
+  -- def Com.runShort (short : String) : IParseM σ :=
   --   do
   --     let flag ←
   --       self.shortOf short
       
     
 
-  -- def Comm.run
-  --   (self : Comm σ)
+  -- def Com.run
+  --   (self : Com σ)
   --   (parser : Parse)
   -- : ParseM σ :=
   --   do
   --     parser.nextDo
   --       ()
 
-  -- def Comm.parse
+  -- def Com.parse
   --   (args : List String)
-end Comm
+end Com

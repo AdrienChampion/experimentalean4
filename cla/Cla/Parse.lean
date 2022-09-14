@@ -143,6 +143,20 @@ def Parse.example.ex1 :=
 
 
 section Parse
+  /-- Returns all remaining arguments except if they're all separators.
+
+  Used for error reporting. When done parsing we check that this list is empty and produce an error
+  if it is not.
+  -/
+  def Parse.remainingNonSep
+    (self : Parse)
+  : List Arg :=
+    let allSep :=
+      self.args.all
+        fun
+        | .sep => true
+        | .val _ | .opt _ => false
+    if allSep then [] else self.args
 
   /-- Sets the `args` field. -/
   def Parse.setArgs
@@ -340,7 +354,7 @@ section Parse
     (valDo : β → String → Nat → IParseM α)
     (foldl : β → α → β)
     (init : β)
-  : EParseM Parse.Err β :=
+  : ParseM β :=
     do
       match ←nextDo (longDo init) (shortDo init) (valDo init) with
       | none => pure init

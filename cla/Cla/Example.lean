@@ -1,4 +1,4 @@
-import Cla.Com
+import Cla.ParseDefs
 
 
 
@@ -12,14 +12,14 @@ structure Conf where
   verb : Nat
   inputs : List String
   output : Option String
-  errors : List Parse.Err
-deriving Repr
+deriving Repr, Inhabited
+
+
 
 def Conf.default : Conf where
   verb := 1
   inputs := []
   output := none
-  errors := []
 
 section Conf
   variable
@@ -32,19 +32,17 @@ section Conf
       verb := action self.verb
   }
 
-  def Conf.addInput
-    (input : String)
-  : Conf := {
-    self with
-      inputs := input :: self.inputs
-  }
-
   def Conf.addInputs
     (inputs : List String)
   : Conf := {
     self with
-      inputs := inputs ++ self.inputs
+      inputs := self.inputs ++ inputs
   }
+
+  def Conf.addInput
+    (input : String)
+  : Conf :=
+    self.addInputs [input]
 
   def Conf.revInputs : Conf := {
     self with inputs := self.inputs.reverse
@@ -249,15 +247,30 @@ namespace Conf.flag
     )
 end Conf.flag
 
-def Conf.command : Except String <| Comm Conf :=
-  Comm.mkBuilder
-    Conf
-    "myProgram"
-  |>.withFlags [
-    flag.v,
-    flag.q,
-    flag.verb,
-    flag.quiet,
-    flag.inputs
-  ]
-  |>.build
+protected def Conf.com : Com Conf :=
+  let com? :=
+    Com.mkBuilder
+      Conf
+      "myProgram"
+    |>.withFlags [
+      flag.v,
+      flag.q,
+      flag.verb,
+      flag.quiet,
+      flag.inputs
+    ]
+    |>.build
+  match com? with
+  | .ok com => com
+  | .error err =>
+    panic! s! "Failed to build command: {err}"
+
+def Conf.parse : List String → Except Parse.Err Conf :=
+  Parse.run Conf.com Conf.default
+
+
+#eval Conf.parse [
+  "--verb", "662",
+  "-vvvv",
+  "--inputs", "in₁", "in₂", "in₃", "in₄"
+]
