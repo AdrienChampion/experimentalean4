@@ -331,8 +331,11 @@ deriving Repr, BEq
 /-- Adds arguments specification to [`Flag1`], but **built** from [`Flag2`]. -/
 structure Flag
   (σ : Type)
-extends Flag1 σ
+-- extends Flag1 σ
 where
+  desc : String
+  short : Option Char
+  long : Option String
   args: ArgSpec σ
 
 
@@ -503,6 +506,14 @@ section Flags
           else
             pure long
         pure (short, long)
+
+  def Flags.mkM
+    (flags : Array <| Except String <| Flag σ)
+  : Except String <| Flags σ :=
+    do
+      let flags ←
+        flags.mapM id
+      Flags.mk flags
 end Flags
 
 
@@ -529,6 +540,23 @@ def Com
   (σ : Type)
 :=
   Command (Flags σ)
+
+def Com.mk
+  {σ : Type}
+  (name : String)
+  (flags : Flags σ)
+: Com σ :=
+  ⟨name, flags⟩
+
+def Com.mkM
+  {μ : Type → Type}
+  [Monad μ]
+  {σ : Type}
+  (name : String)
+  (flags : μ <| Flags σ)
+: μ <| Com σ :=
+  do
+    pure ⟨name, ←flags⟩
 
 instance instInhabitedCom
   [Inhabited σ]

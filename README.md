@@ -76,6 +76,10 @@ tactics
 - https://arxiv.org/abs/2001.10490
 
 
+**Metaprogramming book**: hands-on dive into Lean's metaprogramming:
+- https://github.com/arthurpaulino/lean4-metaprogramming-book
+
+
 
 ## Experimentalean4
 

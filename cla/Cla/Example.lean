@@ -1,4 +1,4 @@
-import Cla.ParseDefs
+import Cla.Dsl
 
 
 
@@ -274,3 +274,11 @@ def Conf.parse : List String → Except Parse.Err Conf :=
   "-vvvv",
   "--inputs", "in₁", "in₂", "in₃", "in₄"
 ]
+
+protected def Conf.com' : Except String <| Com Conf :=
+  let res :=
+    open Cla.Dsl in
+    clap! my_app (conf : Conf) where
+    | -v "update conf" :=
+      pure (conf.verbDo <| Nat.add 1)
+  by sorry
