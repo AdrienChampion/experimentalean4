@@ -276,9 +276,7 @@ def Conf.parse : List String → Except Parse.Err Conf :=
 ]
 
 protected def Conf.com' : Except String <| Com Conf :=
-  let res :=
-    open Cla.Dsl in
-    clap! my_app (conf : Conf) where
-    | -v "update conf" :=
-      pure (conf.verbDo <| Nat.add 1)
-  by sorry
+  open Cla.Dsl in
+  clap! my_app (conf : Conf) where
+  | -v "increases verbosity" :=
+    pure (conf.verbDo <| Nat.add 1)

@@ -41,7 +41,7 @@ section flags
             mkAppM ``Char.ofNat #[n]
           mkAppM ``some #[c]
         | _ =>
-          throwError "expected exactly one character for short flag, found `{s}`"
+          throwErrorAt id "expected exactly one character for short flag, found `{s}`"
       | _ => throwUnsupportedSyntax
 
   syntax longFlag :=
