@@ -109,20 +109,16 @@ section argsSpec
   def elabArgsSpec.validator
     (stateStx : TSyntax `ident)
     (stateTypeStx : TSyntax `term)
-    (state : Name × Expr)
     (pref : Array <| TSyntax `ident)
     (tail : Option (TSyntax `ident))
     (body : TSyntax `term)
+    (expectedType? : Option Expr)
   : TermElabM Expr :=
-    let (_state, stateType) :=
-      state
-    -- let argsVar : Expr :=
-    --   Expr.fvar ⟨argsName⟩
     do
       let argsName : TSyntax `ident ←
         `(claReservedArgsIdent)
       let argsName : TSyntax `term ←
-        `(argsName)
+        `($argsName)
 
       let rec argsTypeAndBindingOfPref
         (path : TSyntax `term)
@@ -130,10 +126,9 @@ section argsSpec
         | hd::tl =>
           do
             let proj1 ←
-              `(path.1)
+              `($path.1)
             let proj2 ←
-              `(path.2)
-            logInfo f! "binding {hd}"
+              `($path.2)
             match ← argsTypeAndBindingOfPref proj2 tl with
             | some (argsType, bindings) =>
               let argsType ←
@@ -142,7 +137,7 @@ section argsSpec
                 fun (e : TSyntax `term) =>
                   do
                     let tail ← bindings e
-                    `(let $hd : String := proj1 ; $tail)
+                    `(let $hd : String := $proj1 ; $tail)
               return some (argsType, bindings)
             | none =>
               let binding :=
@@ -174,24 +169,10 @@ section argsSpec
         )
       )
       let body ←
-        withLocalDeclsD bodyDecls fun _ =>
-          Term.elabTerm body expectedType
-      -- let body ←
-      --   mkLetFVars (bodyDecls.map (·.1 |> mkConst)) body
-      logInfo f!"body: {body}"
-      let body ←
-        withLocalDeclD argsName argsType fun _ =>
-          return bindings body
-      logInfo f!"binding {argsName}"
-      let body :=
-        Expr.lam argsName argsType body BinderInfo.default
-      let fvars :=
-        Lean.collectFVars default body
-      if ¬ fvars.fvarSet.isEmpty then
-        logInfo "fvars in body:"
-        for fvar in fvars.fvarSet do
-          logInfo f! "- {fvar.name}"
-      pure body 
+        bindings body
+      let closure ←
+        `(fun $argsName => $body)
+      Term.elabTermEnsuringType closure expectedType?
 
 
   def elabArgsSpec
@@ -203,48 +184,31 @@ section argsSpec
       do
         let bounds :=
           mkConst ``ArgSpec.Bounds.zero
-        let bodyFun ←
-          ``(fun (_ : Unit) ($stateStx : $stateTypeStx) =>
-            match ($body : Except String $stateTypeStx) with
-            | .ok state => EStateM.Result.ok () state
-            | .error msg => EStateM.Result.error msg $stateStx
-          )
-        let body ←
-          Term.elabTermEnsuringType bodyFun
-          <| ← expectedType? bounds
-        mkAppM ``ArgSpec.mk #[bounds, body]
-    | `(argsSpec| taking ($params:ident* : String) := $body) =>
-      do
-        let argCount :=
-          params.size
-        let idents :=
-          params.map TSyntax.getId
-        let bounds ←
-          mkAppM ``ArgSpec.Bounds.exact #[mkNatLit argCount]
-        -- build signature for `body` and setup user-defined bindings
-        -- let body ← ``(
-        --   fun
-        --     $[($params : String)]*
-        --     ($stateStx : $stateTypeStx)
-        --   : EStateM String $stateTypeStx Unit =>
-        --     bind EStateM.get (
-        --       fun $stateStx =>
-        --         match ($body : Except String $stateTypeStx) with
-        --         | .ok state =>
-        --           bind (set state) fun _ => pure ()
-        --         | .error e =>
-        --           EStateM.throw e
-        --     )
-        -- )
+        let expectedType? :=
+          ← expectedType? bounds
         let body ←
           elabArgsSpec.validator
             stateStx
             stateTypeStx
-            (stateStx.getId, stateType)
+            #[]
+            none
+            body
+            expectedType?
+        mkAppM ``ArgSpec.mk #[bounds, body]
+    | `(argsSpec| taking ($params:ident* : String) := $body) =>
+      do
+        let bounds ←
+          mkAppM ``ArgSpec.Bounds.exact #[mkNatLit params.size]
+        let expectedType? :=
+          ← expectedType? bounds
+        let body ←
+          elabArgsSpec.validator
+            stateStx
+            stateTypeStx
             params
             none
             body
-        logInfo f! "body: {body}"
+            expectedType?
         mkAppM ``ArgSpec.mk #[bounds, body]
     | _ =>
       throwUnsupportedSyntax
@@ -346,12 +310,10 @@ def Test.clap1 : Com Nat :=
     | ─verb
       "sets the verbosity"
         taking (verb : String) :=
-          .ok (String.toNat! verb)
-        -- taking (verb : String) :=
-        --   if let some n := String.toNat? verb then
-        --     .ok n
-        --   else
-        --     .error s! "expected natural, got `{verb}`"
+          if let some n := String.toNat? verb then
+            .ok n
+          else
+            .error s! "expected natural, got `{verb}`"
   match clap with
   | .ok clap => clap
   | .error e =>
