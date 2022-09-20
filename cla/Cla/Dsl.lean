@@ -101,58 +101,82 @@ section argsSpec
     )?
     " := " term
 
+  /-- Constructs the validation function for a flag.
+  
+  Yields the closure taking the nested tuple of CLAs and the state. Deconstructs the CLAs so that
+  `body` has the local variables declared in `pref` and `tail`.
+  -/
   def elabArgsSpec.validator
-    (state : Name × Expr)
-    (pref : Array Name)
-    (tail : Option Name)
-    (body : Expr)
+    (stateStx : TSyntax `ident)
+    (stateTypeStx : TSyntax `term)
+    (pref : Array <| TSyntax `ident)
+    (tail : Option (TSyntax `ident))
+    (body : TSyntax `term)
+    (expectedType? : Option Expr)
   : TermElabM Expr :=
-    let (state, stateType) :=
-      state
-    let argsName : Name :=
-      `claReservedArgsIdent
-    let argsVar : Expr :=
-      Expr.fvar ⟨argsName⟩
     do
+      let argsName : TSyntax `ident ←
+        `(claReservedArgsIdent)
+      let argsName : TSyntax `term ←
+        `($argsName)
 
       let rec argsTypeAndBindingOfPref
-        (path : Expr)
-      : List Name → TermElabM (Option (Expr × (Expr → Expr)))
+        (path : TSyntax `term)
+      : List (TSyntax `ident) → TermElabM (Option (Expr × (TSyntax `term → TermElabM (TSyntax `term))))
         | hd::tl =>
-          let proj1 :=
-            mkProj ``Prod 1 path
-          let proj2 :=
-            mkProj ``Prod 2 path
           do
+            let proj1 ←
+              `($path.1)
+            let proj2 ←
+              `($path.2)
             match ← argsTypeAndBindingOfPref proj2 tl with
             | some (argsType, bindings) =>
               let argsType ←
                 mkAppM ``Prod #[Str, argsType]
               let bindings :=
-                fun e =>
-                  Expr.letE hd Str proj1 (bindings e) true
+                fun (e : TSyntax `term) =>
+                  do
+                    let tail ← bindings e
+                    `(let $hd : String := $proj1 ; $tail)
               return some (argsType, bindings)
             | none =>
-              let binding : Expr → Expr :=
-                (Expr.letE hd Str argsVar · true)
+              let binding :=
+                fun (e : TSyntax `term) =>
+                  do
+                    `(let $hd : String := $path ; $e)
               return some (Str, binding)
         | [] =>
           do
             if let some tailName := tail then
-              let bindings : Expr → Expr :=
-                (Expr.letE tailName LstStr path · true)
+              let bindings :=
+                fun (e : TSyntax `term) =>
+                  do
+                    `(let $tailName : List String := $path ; $e)
               return some (LstStr, bindings)
             else
               return none
       let (argsType, bindings) :=
-        (← argsTypeAndBindingOfPref argsVar pref.data).getD (mkConst ``Unit, id)
+        (← argsTypeAndBindingOfPref argsName pref.data).getD (mkConst ``Unit, pure)
 
-      withLocalDeclD argsName argsType fun _ =>
-        withLocalDeclD state stateType fun _ =>
-          return bindings body
+      let body ← ``(
+        bind EStateM.get (
+          fun $stateStx =>
+            match ($body : Except String $stateTypeStx) with
+            | .ok state =>
+              bind (set state) fun _ => pure ()
+            | .error e =>
+              EStateM.throw e
+        )
+      )
+      let body ←
+        bindings body
+      let closure ←
+        `(fun $argsName => $body)
+      Term.elabTermEnsuringType closure expectedType?
+
 
   def elabArgsSpec
-    (stateStx : TSyntax `term)
+    (stateStx : TSyntax `ident)
     (stateTypeStx : TSyntax `term)
     (stateType : Expr)
   : TSyntax `Cla.Dsl.argsSpec → TermElabM Expr
@@ -160,18 +184,34 @@ section argsSpec
       do
         let bounds :=
           mkConst ``ArgSpec.Bounds.zero
-        let bodyFun ←
-          ``(fun (_ : Unit) ($stateStx : $stateTypeStx) =>
-            match ($body : Except String $stateTypeStx) with
-            | .ok state => EStateM.Result.ok () state
-            | .error msg => EStateM.Result.error msg $stateStx
-          )
+        let expectedType? :=
+          ← expectedType? bounds
         let body ←
-          Term.elabTermEnsuringType bodyFun
-          <| ← expectedType? bounds
+          elabArgsSpec.validator
+            stateStx
+            stateTypeStx
+            #[]
+            none
+            body
+            expectedType?
         mkAppM ``ArgSpec.mk #[bounds, body]
-      | _ =>
-        throwUnsupportedSyntax
+    | `(argsSpec| taking ($params:ident* : String) := $body) =>
+      do
+        let bounds ←
+          mkAppM ``ArgSpec.Bounds.exact #[mkNatLit params.size]
+        let expectedType? :=
+          ← expectedType? bounds
+        let body ←
+          elabArgsSpec.validator
+            stateStx
+            stateTypeStx
+            params
+            none
+            body
+            expectedType?
+        mkAppM ``ArgSpec.mk #[bounds, body]
+    | _ =>
+      throwUnsupportedSyntax
   where
     expectedType? (bounds : Expr) : TermElabM <| Option Expr :=
       do
@@ -188,7 +228,7 @@ section flag
     startFlags ws str argsSpec
 
   def elabFlag
-    (stateStx : TSyntax `term)
+    (stateStx : TSyntax `ident)
     (stateTypeStx : TSyntax `term)
     (stateType : Expr)
   : TSyntax `Cla.Dsl.flag → TermElabM Expr
@@ -215,7 +255,7 @@ section com
     flag <|> term
 
   def elabComItem
-    (stateStx : TSyntax `term)
+    (stateStx : TSyntax `ident)
     (stateTypeStx : TSyntax `term)
     (stateType : Expr)
   : TSyntax `Cla.Dsl.comItem → TermElabM Expr
@@ -251,16 +291,6 @@ section com
 
 end com
 
--- syntax (name := claTop)
---   "clap! " com
--- : term
-
--- @[termElab claTop]
--- def claTopImpl : Term.TermElab := fun stx _typ? =>
---   match stx with
---   | `(clap! $com:com) => elabCom com
---   | _ => throwUnsupportedSyntax
-
 
 
 scoped elab "clap! " com:com : term =>
@@ -279,12 +309,11 @@ def Test.clap1 : Com Nat :=
       := pure (n - 1)
     | ─verb
       "sets the verbosity"
-      := pure n
-        -- taking (verb : String) :=
-        --   if let some n := String.toNat verb then
-        --     .ok n
-        --   else
-        --     .err s! "expected natural, got `{verb}`"
+        taking (verb : String) :=
+          if let some n := String.toNat? verb then
+            .ok n
+          else
+            .error s! "expected natural, got `{verb}`"
   match clap with
   | .ok clap => clap
   | .error e =>
