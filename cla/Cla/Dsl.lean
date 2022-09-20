@@ -110,65 +110,59 @@ section argsSpec
     (stateStx : TSyntax `ident)
     (stateTypeStx : TSyntax `term)
     (state : Name × Expr)
-    (pref : Array Name)
-    (tail : Option Name)
+    (pref : Array <| TSyntax `ident)
+    (tail : Option (TSyntax `ident))
     (body : TSyntax `term)
   : TermElabM Expr :=
     let (_state, stateType) :=
       state
-    let argsName : Name :=
-      `claReservedArgsIdent
-    let argsVar : Expr :=
-      Expr.fvar ⟨argsName⟩
+    -- let argsVar : Expr :=
+    --   Expr.fvar ⟨argsName⟩
     do
+      let argsName : TSyntax `ident ←
+        `(claReservedArgsIdent)
+      let argsName : TSyntax `term ←
+        `(argsName)
 
       let rec argsTypeAndBindingOfPref
-        (path : Expr)
-      : List Name → TermElabM (Option (Expr × (Expr → Expr)))
+        (path : TSyntax `term)
+      : List (TSyntax `ident) → TermElabM (Option (Expr × (TSyntax `term → TermElabM (TSyntax `term))))
         | hd::tl =>
-          let proj1 :=
-            mkProj ``Prod 1 path
-          let proj2 :=
-            mkProj ``Prod 2 path
           do
+            let proj1 ←
+              `(path.1)
+            let proj2 ←
+              `(path.2)
             logInfo f! "binding {hd}"
             match ← argsTypeAndBindingOfPref proj2 tl with
             | some (argsType, bindings) =>
               let argsType ←
                 mkAppM ``Prod #[Str, argsType]
               let bindings :=
-                fun e =>
-                  Expr.letE hd Str proj1 (bindings e) true
+                fun (e : TSyntax `term) =>
+                  do
+                    let tail ← bindings e
+                    `(let $hd : String := proj1 ; $tail)
               return some (argsType, bindings)
             | none =>
-              let binding : Expr → Expr :=
-                (Expr.letE hd Str path · true)
+              let binding :=
+                fun (e : TSyntax `term) =>
+                  do
+                    `(let $hd : String := $path ; $e)
               return some (Str, binding)
         | [] =>
           do
             if let some tailName := tail then
-              let bindings : Expr → Expr :=
-                (Expr.letE tailName LstStr path · true)
+              let bindings :=
+                fun (e : TSyntax `term) =>
+                  do
+                    `(let $tailName : List String := $path ; $e)
               return some (LstStr, bindings)
             else
               return none
       let (argsType, bindings) :=
-        (← argsTypeAndBindingOfPref argsVar pref.data).getD (mkConst ``Unit, id)
+        (← argsTypeAndBindingOfPref argsName pref.data).getD (mkConst ``Unit, pure)
 
-      -- lists all arguments and their type
-      let bodyDecls : Array (Name × (Array Expr → TermElabM Expr)) :=
-        let args :=
-          #[(argsName, 𝕂 <| pure argsType)]
-        let pref :=
-          pref.map (·, 𝕂 (pure Str))
-        let tail :=
-          if let some tail := tail then
-            #[(tail, 𝕂 (pure LstStr))]
-          else
-            #[]
-        args ++ pref ++ tail
-      let expectedType ←
-        mkAppM ``EStateM #[Str, stateType, mkConst ``Unit]
       let body ← ``(
         bind EStateM.get (
           fun $stateStx =>
@@ -228,12 +222,26 @@ section argsSpec
         let bounds ←
           mkAppM ``ArgSpec.Bounds.exact #[mkNatLit argCount]
         -- build signature for `body` and setup user-defined bindings
+        -- let body ← ``(
+        --   fun
+        --     $[($params : String)]*
+        --     ($stateStx : $stateTypeStx)
+        --   : EStateM String $stateTypeStx Unit =>
+        --     bind EStateM.get (
+        --       fun $stateStx =>
+        --         match ($body : Except String $stateTypeStx) with
+        --         | .ok state =>
+        --           bind (set state) fun _ => pure ()
+        --         | .error e =>
+        --           EStateM.throw e
+        --     )
+        -- )
         let body ←
           elabArgsSpec.validator
             stateStx
             stateTypeStx
             (stateStx.getId, stateType)
-            idents
+            params
             none
             body
         logInfo f! "body: {body}"
