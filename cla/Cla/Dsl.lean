@@ -101,13 +101,20 @@ section argsSpec
     )?
     " := " term
 
+  /-- Constructs the validation function for a flag.
+  
+  Yields the closure taking the nested tuple of CLAs and the state. Deconstructs the CLAs so that
+  `body` has the local variables declared in `pref` and `tail`.
+  -/
   def elabArgsSpec.validator
+    (stateStx : TSyntax `ident)
+    (stateTypeStx : TSyntax `term)
     (state : Name × Expr)
     (pref : Array Name)
     (tail : Option Name)
-    (body : Expr)
+    (body : TSyntax `term)
   : TermElabM Expr :=
-    let (state, stateType) :=
+    let (_state, stateType) :=
       state
     let argsName : Name :=
       `claReservedArgsIdent
@@ -124,6 +131,7 @@ section argsSpec
           let proj2 :=
             mkProj ``Prod 2 path
           do
+            logInfo f! "binding {hd}"
             match ← argsTypeAndBindingOfPref proj2 tl with
             | some (argsType, bindings) =>
               let argsType ←
@@ -134,7 +142,7 @@ section argsSpec
               return some (argsType, bindings)
             | none =>
               let binding : Expr → Expr :=
-                (Expr.letE hd Str argsVar · true)
+                (Expr.letE hd Str path · true)
               return some (Str, binding)
         | [] =>
           do
@@ -147,12 +155,53 @@ section argsSpec
       let (argsType, bindings) :=
         (← argsTypeAndBindingOfPref argsVar pref.data).getD (mkConst ``Unit, id)
 
-      withLocalDeclD argsName argsType fun _ =>
-        withLocalDeclD state stateType fun _ =>
+      -- lists all arguments and their type
+      let bodyDecls : Array (Name × (Array Expr → TermElabM Expr)) :=
+        let args :=
+          #[(argsName, 𝕂 <| pure argsType)]
+        let pref :=
+          pref.map (·, 𝕂 (pure Str))
+        let tail :=
+          if let some tail := tail then
+            #[(tail, 𝕂 (pure LstStr))]
+          else
+            #[]
+        args ++ pref ++ tail
+      let expectedType ←
+        mkAppM ``EStateM #[Str, stateType, mkConst ``Unit]
+      let body ← ``(
+        bind EStateM.get (
+          fun $stateStx =>
+            match ($body : Except String $stateTypeStx) with
+            | .ok state =>
+              bind (set state) fun _ => pure ()
+            | .error e =>
+              EStateM.throw e
+        )
+      )
+      let body ←
+        withLocalDeclsD bodyDecls fun _ =>
+          Term.elabTerm body expectedType
+      -- let body ←
+      --   mkLetFVars (bodyDecls.map (·.1 |> mkConst)) body
+      logInfo f!"body: {body}"
+      let body ←
+        withLocalDeclD argsName argsType fun _ =>
           return bindings body
+      logInfo f!"binding {argsName}"
+      let body :=
+        Expr.lam argsName argsType body BinderInfo.default
+      let fvars :=
+        Lean.collectFVars default body
+      if ¬ fvars.fvarSet.isEmpty then
+        logInfo "fvars in body:"
+        for fvar in fvars.fvarSet do
+          logInfo f! "- {fvar.name}"
+      pure body 
+
 
   def elabArgsSpec
-    (stateStx : TSyntax `term)
+    (stateStx : TSyntax `ident)
     (stateTypeStx : TSyntax `term)
     (stateType : Expr)
   : TSyntax `Cla.Dsl.argsSpec → TermElabM Expr
@@ -170,8 +219,27 @@ section argsSpec
           Term.elabTermEnsuringType bodyFun
           <| ← expectedType? bounds
         mkAppM ``ArgSpec.mk #[bounds, body]
-      | _ =>
-        throwUnsupportedSyntax
+    | `(argsSpec| taking ($params:ident* : String) := $body) =>
+      do
+        let argCount :=
+          params.size
+        let idents :=
+          params.map TSyntax.getId
+        let bounds ←
+          mkAppM ``ArgSpec.Bounds.exact #[mkNatLit argCount]
+        -- build signature for `body` and setup user-defined bindings
+        let body ←
+          elabArgsSpec.validator
+            stateStx
+            stateTypeStx
+            (stateStx.getId, stateType)
+            idents
+            none
+            body
+        logInfo f! "body: {body}"
+        mkAppM ``ArgSpec.mk #[bounds, body]
+    | _ =>
+      throwUnsupportedSyntax
   where
     expectedType? (bounds : Expr) : TermElabM <| Option Expr :=
       do
@@ -188,7 +256,7 @@ section flag
     startFlags ws str argsSpec
 
   def elabFlag
-    (stateStx : TSyntax `term)
+    (stateStx : TSyntax `ident)
     (stateTypeStx : TSyntax `term)
     (stateType : Expr)
   : TSyntax `Cla.Dsl.flag → TermElabM Expr
@@ -215,7 +283,7 @@ section com
     flag <|> term
 
   def elabComItem
-    (stateStx : TSyntax `term)
+    (stateStx : TSyntax `ident)
     (stateTypeStx : TSyntax `term)
     (stateType : Expr)
   : TSyntax `Cla.Dsl.comItem → TermElabM Expr
@@ -251,16 +319,6 @@ section com
 
 end com
 
--- syntax (name := claTop)
---   "clap! " com
--- : term
-
--- @[termElab claTop]
--- def claTopImpl : Term.TermElab := fun stx _typ? =>
---   match stx with
---   | `(clap! $com:com) => elabCom com
---   | _ => throwUnsupportedSyntax
-
 
 
 scoped elab "clap! " com:com : term =>
@@ -279,12 +337,13 @@ def Test.clap1 : Com Nat :=
       := pure (n - 1)
     | ─verb
       "sets the verbosity"
-      := pure n
+        taking (verb : String) :=
+          .ok (String.toNat! verb)
         -- taking (verb : String) :=
-        --   if let some n := String.toNat verb then
+        --   if let some n := String.toNat? verb then
         --     .ok n
         --   else
-        --     .err s! "expected natural, got `{verb}`"
+        --     .error s! "expected natural, got `{verb}`"
   match clap with
   | .ok clap => clap
   | .error e =>
