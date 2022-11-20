@@ -103,7 +103,7 @@ namespace ArgSpec.Bounds
   /-- The interval `[min, max]` with `min ≤ max`. -/
   def between
     (min max : Nat)
-    (_legal : min ≤ max := by simp)
+    -- (_legal : min ≤ max := by simp)
   : Bounds where
     min := min
     max := some max

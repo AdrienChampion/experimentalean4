@@ -111,7 +111,6 @@ instance instMonadOpenedOsmT
     OsmT.bind
 
 
-
 /-- Adds some context to an error. -/
 def OsmT.context
   {σ : Type u}

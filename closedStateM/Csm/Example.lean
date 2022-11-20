@@ -31,7 +31,7 @@ Can be negative, but once it is negative withdrawals are rejected.
 structure Account where
 private innerMk ::
   private balance : Int
-deriving BEq, Repr
+deriving BEq, Repr, Inhabited
 
 instance instToStringAccount : ToString Account where
   toString :=
@@ -172,8 +172,10 @@ section closed
     [Monad m]
   : Money → Account.CsmT m Unit :=
     instMoneyIsDumbCsm.deposit
+
   def Account.ECsm.withdraw :=
     instMoneyIsDumbCsm.withdraw
+
   def Account.ECsm.balance
     {m : Type → Type}
     [Monad m]

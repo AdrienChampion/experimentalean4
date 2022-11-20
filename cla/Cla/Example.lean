@@ -278,5 +278,21 @@ def Conf.parse : List String → Except Parse.Err Conf :=
 protected def Conf.com' : Except String <| Com Conf :=
   open Cla.Dsl in
   clap! my_app (conf : Conf) where
-  | -v "increases verbosity" :=
-    pure (conf.verbDo <| Nat.add 1)
+  | -v
+    "increases verbosity"
+    := pure (conf.verbDo <| Nat.add 1)
+  | -q
+    "decreases verbosity"
+    := pure (conf.verbDo <| Nat.sub 1)
+  | ─verb
+    "sets the verbosity"
+    taking (v : String) :=
+      if let some v := String.toNat? v then
+        .ok <| conf.verbDo <| 𝕂 v
+      else
+        .error s! "expected natural number, got {v}"
+  | ─inputs
+    "input files"
+    taking (in₁ in₂ : String) (inTail : List String ≤ 3) :=
+      conf.addInputs (in₁ :: in₂ :: inTail)
+      |> .ok

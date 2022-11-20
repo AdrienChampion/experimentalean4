@@ -256,3 +256,145 @@ section result
   abbrev PRes :=
     Result Cla.Parse.Err
 end result
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- abbrev SRes (α : Type u) :=
+--   Except String α
+
+-- structure AbsArg (In : Type u) where
+--   resType : Type v
+--   validate : In → SRes resType
+-- deriving Inhabited
+
+-- def AbsArg.inType
+--   (_ : AbsArg In)
+-- := In
+
+
+-- abbrev Arg :=
+--   AbsArg String
+-- namespace Arg
+--   export AbsArg (mk inType)
+
+--   def ofOption
+--     (desc: String)
+--     (get? : String → Option α)
+--   : Arg where
+--     resType := α
+--     validate s :=
+--       if let some res := get? s then
+--         .ok res
+--       else
+--         .error s! "expected {desc}, got {s}"
+
+--   def mkString : Arg where
+--     resType := String
+--     validate := pure
+
+--   def mkNat :=
+--     ofOption "natural number" String.toNat?
+
+--   def mkInt :=
+--     ofOption "integer" String.toInt?
+-- end Arg
+
+-- abbrev ArgTail :=
+--   AbsArg <| List String
+-- namespace ArgTail
+--   export AbsArg (mk inType)
+
+--   def mkListString : ArgTail where
+--     resType := List String
+--     validate := pure
+-- end ArgTail
+
+-- structure Args.{u} where
+--   args : Array Arg.{u}
+--   tail : Option ArgTail.{u}
+
+-- def Args.empty : Args where
+--   args := #[]
+--   tail := none
+
+-- def Args.push
+--   (self : Args)
+--   (arg : Arg)
+-- : Args := {
+--   self with
+--     args := self.args.push arg
+-- }
+
+-- def Args.typeFoldr
+--   (self : Args.{u})
+--   (fArg : Arg → α → α)
+--   (fTail : ArgTail → α → α)
+--   (init : α)
+-- : α :=
+--   let init :=
+--     self.tail.map (fTail · init)
+--     |>.getD init
+--   self.args.foldr fArg init
+
+-- def Args.inType
+--   (self : Args.{u})
+-- : Type :=
+--   Unit
+--   |> self.typeFoldr
+--     (fun arg acc => arg.inType → acc)
+--     (fun tail acc => tail.inType → acc)
+
+-- def Args.outType
+--   (self : Args.{u})
+--   (α : Type u)
+-- : Type u :=
+--   SRes α
+--   |> self.typeFoldr
+--     (fun arg acc => arg.resType → acc)
+--     (fun tail acc => tail.resType → acc)
+
+-- def Args.apply
+--   (self : Args.{u})
+--   (input : self.inType)
+--   (action : self.outType α)
+-- : SRes α :=
+--   by
+--     simp [outType, typeFoldr, Array.foldr, Array.foldrM] at action
+--     cases h : self.args.data with
+--     | cons hd tl =>
+--       rw [h] at action
+--       simp [outType.loop] at action
+--       sorry
+--     | nil =>
+--       match self.tail with
+--       | some tail => sorry
+--       | none => sorry
+
+-- def Args.test : IO Unit :=
+--   let args :=
+--     Args.mk
+--       #[Arg.mkNat, Arg.mkString, Arg.mkInt]
+--     <|some ArgTail.mkListString
+
+--   let eatAll
+--     (n : Nat) (s : String) (i : Int) (tail : List String)
+--   : IO Unit :=
+--     do
+--       println! "n: {n}, s: `{s}`, i: {i}"
+--       println! "tail:"
+--       for elm in tail do
+--         println! "- `{elm}`"
+
+  
+
+--   return ()
