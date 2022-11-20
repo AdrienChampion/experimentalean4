@@ -21,6 +21,7 @@ abbrev longerId := longId
 abbrev evenLongerId := longId
 
 -- plain
+-- nightly ✅ #1844 ✅ pre #1811 ✅
 example : t1 < t5 :=
   let p := calc
     t1 = t2 := pf12
@@ -31,6 +32,7 @@ example : t1 < t5 :=
   p
 
 -- sensible indentation with padding, rel-ops aligned
+-- nightly ✅ #1844 ✅ pre #1811 ✅
 example : t1 < t5 :=
   let p := calc
     t1 = t2 := pf12
@@ -41,6 +43,7 @@ example : t1 < t5 :=
   p
 
 -- align on rel-ops with arbitrary `_` indentation
+-- nightly ✅ #1844 ❌ pre #1811 ✅
 example : t1 < t5 :=
   let _ := calc
     t1 = t2 := pf12
@@ -56,6 +59,7 @@ example : t1 < t5 :=
   p
 
 -- align on rel-ops with arbitrary `_` indentation, drifting
+-- nightly ✅ #1844 ❌ pre #1811 ✅
 example : t1 < t5 :=
   let p := calc
     longId t1 = t2 :=
@@ -68,6 +72,7 @@ example : t1 < t5 :=
   p
 
 -- same-line `calc <first relation>` with normal indent afterwards
+-- nightly ✅ #1844 ✅ pre #1811 ✅
 example : t1 < t5 :=
   calc t1 = t2 := pf12
     _ < t3 := pf23
@@ -75,6 +80,7 @@ example : t1 < t5 :=
     _ < t5 := pf45
 
 -- `calc <first relation LHS>\n<indent><relation and relation RHS>`
+-- nightly ✅ #1844 ✅ pre #1811 ✅
 example : t1 < t5 :=
   let _ :=
     calc t1
@@ -91,6 +97,7 @@ example : t1 < t5 :=
     _ < t5 := pf45
 
 -- `calc <first relation LHS>\n<indent><relation and relation RHS>`
+-- nightly ✅ #1844 ✅ pre #1811 ✅
 example : t1 < t5 :=
   calc t1 = t2 := pf12
        _  < t3 := pf23
@@ -100,6 +107,7 @@ example : t1 < t5 :=
 
 
 -- `by` with indented sequence of tactics in `calc`-item RHS
+-- nightly ❌ #1844 ✅ pre #1811 ✅
 example : t1 < t4 :=
   calc
     t1 = t2 := pf12
@@ -110,6 +118,7 @@ example : t1 < t4 :=
     _  = t4 := pf34
 
 -- function application with indented argument in `calc`-item RHS
+-- nightly ❌ #1844 ✅ pre #1811 ❌
 example : t1 < t4 :=
   calc
     t1 = t2 := pf12
@@ -118,8 +127,21 @@ example : t1 < t4 :=
     _  = t4 := id
                 pf34
 
+-- vicious `v1`, single line
+-- https://github.com/leanprover-community/mathlib/blob/568eb9b432c885f2a2cb8fe3bbfa77467e774da7/archive/100-theorems-list/37_solution_of_cubic.lean#L166-L172
+-- nightly ✅ #1844 ✅ pre #1811 ✅
+example : t1 < t4 :=
+  calc  longId t1
+      = longerId t2
+        := pf12
+    _ < t3
+        := id pf23
+    _ = t4
+        := id pf34
+
 -- vicious `v1`
 -- https://github.com/leanprover-community/mathlib/blob/568eb9b432c885f2a2cb8fe3bbfa77467e774da7/archive/100-theorems-list/37_solution_of_cubic.lean#L166-L172
+-- nightly ❌ #1844 ✅ pre #1811 ❌
 example : t1 < t4 :=
   calc  longId t1
       = longerId t2
@@ -127,30 +149,50 @@ example : t1 < t4 :=
     _ < t3
         := id
       pf23
-    _  = t4
+    _ = t4
         := id
             pf34
+
+-- vicious `v2`, single line
+-- https://github.com/leanprover-community/mathlib/blob/568eb9b432c885f2a2cb8fe3bbfa77467e774da7/archive/100-theorems-list/37_solution_of_cubic.lean#L176-L181
+-- nightly ✅ #1844 ✅ pre #1811 ✅
+example : t1 < t4 :=
+  calc  longId t1
+      = longerId t2 := pf12
+    _ < t3
+      := id pf23
+    _ = t4
+      := id pf34
 
 -- vicious `v2`
 -- https://github.com/leanprover-community/mathlib/blob/568eb9b432c885f2a2cb8fe3bbfa77467e774da7/archive/100-theorems-list/37_solution_of_cubic.lean#L176-L181
+-- nightly ❌ #1844 ✅ pre #1811 ❌
 example : t1 < t4 :=
   calc  longId t1
-      = longerId t2
-        := pf12
+      = longerId t2 := pf12
     _ < t3
-        := id
-      pf23
-    _  = t4
-        := id
-            pf34
+      := id
+        pf23
+    _ = t4
+      := id
+          pf34
 
+-- playing with `by`
+-- nightly ❌ #1844 ✅ pre #1811 ✅
 example : t1 < t4 :=
   calc  longId t1
       = longerId t2
         := pf12
     _ < t3 := by
       apply id pf23
-    _  = t4 :=
+    _ = t4 :=
       by
         apply id pf34
 
+-- `@digama0`'s crazy idea
+-- nightly ❌ #1844 ❌ pre #1811 ❌
+example : t1 < t4 :=
+  calc t1
+    _ = t2 := pf12
+    _ < t3 := pf23
+    _ = t4 := pf34
