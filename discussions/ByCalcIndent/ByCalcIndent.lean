@@ -20,7 +20,17 @@ abbrev longId : Nat → Nat := id
 abbrev longerId := longId
 abbrev evenLongerId := longId
 
--- standard
+-- plain
+example : t1 < t5 :=
+  let p := calc
+    t1 = t2 := pf12
+    _ < t3 := pf23
+    _ = t4 := pf34
+    _ < t5 := pf45
+  -- dedent terminates the block
+  p
+
+-- sensible indentation with padding, rel-ops aligned
 example : t1 < t5 :=
   let p := calc
     t1 = t2 := pf12
@@ -30,16 +40,51 @@ example : t1 < t5 :=
   -- dedent terminates the block
   p
 
+-- align on rel-ops with arbitrary `_` indentation
+example : t1 < t5 :=
+  let _ := calc
+    t1 = t2 := pf12
+     _ < t3 := pf23
+     _ = t4 := pf34
+     _ < t5 := pf45
+  let p := calc
+    longId t1 = t2 := pf12
+            _ < t3 := pf23
+            _ = t4 := pf34
+            _ < t5 := pf45
+  -- dedent terminates the block
+  p
+
+-- align on rel-ops with arbitrary `_` indentation, drifting
+example : t1 < t5 :=
+  let p := calc
+    longId t1 = t2 :=
+            pf12 -- error if less indented
+            _ < t3 := id
+                        pf23 -- error if less indented
+            _ = t4 := pf34
+            _ < t5 := pf45
+  -- dedent terminates the block
+  p
+
 -- same-line `calc <first relation>` with normal indent afterwards
 example : t1 < t5 :=
   calc t1 = t2 := pf12
-    _  < t3 := pf23
-    _  = t4 := pf34
-    _  < t5 := pf45
+    _ < t3 := pf23
+    _ = t4 := pf34
+    _ < t5 := pf45
 
 -- `calc <first relation LHS>\n<indent><relation and relation RHS>`
 example : t1 < t5 :=
-  calc t1
+  let _ :=
+    calc t1
+        = t2 := pf12
+      _ < t3 := pf23
+      _ = t4 := pf34
+      _ < t5 := pf45
+  -- alternatively
+  calc
+    t1
       = t2 := pf12
     _ < t3 := pf23
     _ = t4 := pf34
