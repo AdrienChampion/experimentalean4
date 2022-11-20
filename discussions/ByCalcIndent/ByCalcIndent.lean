@@ -1,3 +1,13 @@
+/-!
+
+On mathlib 4, plain (no special indent/padding):
+- https://github.com/leanprover-community/mathlib4/search?q=calc
+
+On std 4:
+- plain: https://github.com/leanprover/std4/blob/main/Std/Data/Int/Lemmas.lean#L1133-L1139
+- padded `_`: https://github.com/leanprover/std4/blob/main/Std/Data/List/Init/Lemmas.lean#L129-L131
+-/
+
 variable
   (t1 t2 t3 t4 t5 : Nat)
 
