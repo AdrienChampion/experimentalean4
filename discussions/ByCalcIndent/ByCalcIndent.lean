@@ -1,5 +1,13 @@
 /-!
 
+Lean versions used, most recent to oldest:
+
+- `nightly`: 20 Nov. 2022
+- `#1844`: https://github.com/leanprover/lean4/pull/1844
+- `pre #1811`: right before https://github.com/leanprover/lean4/pull/1811
+
+# `calc`
+
 On mathlib 4, plain (no special indent/padding):
 - https://github.com/leanprover-community/mathlib4/search?q=calc
 
@@ -139,7 +147,7 @@ example : t1 < t4 :=
     _ = t4
         := id pf34
 
--- vicious `v1`
+-- vicious `v2`
 -- https://github.com/leanprover-community/mathlib/blob/568eb9b432c885f2a2cb8fe3bbfa77467e774da7/archive/100-theorems-list/37_solution_of_cubic.lean#L166-L172
 -- nightly ❌ #1844 ✅ pre #1811 ❌
 example : t1 < t4 :=
@@ -153,7 +161,7 @@ example : t1 < t4 :=
         := id
             pf34
 
--- vicious `v2`, single line
+-- vicious `v3`, single line
 -- https://github.com/leanprover-community/mathlib/blob/568eb9b432c885f2a2cb8fe3bbfa77467e774da7/archive/100-theorems-list/37_solution_of_cubic.lean#L176-L181
 -- nightly ✅ #1844 ✅ pre #1811 ✅
 example : t1 < t4 :=
@@ -164,7 +172,7 @@ example : t1 < t4 :=
     _ = t4
       := id pf34
 
--- vicious `v2`
+-- vicious `v4`
 -- https://github.com/leanprover-community/mathlib/blob/568eb9b432c885f2a2cb8fe3bbfa77467e774da7/archive/100-theorems-list/37_solution_of_cubic.lean#L176-L181
 -- nightly ❌ #1844 ✅ pre #1811 ❌
 example : t1 < t4 :=
