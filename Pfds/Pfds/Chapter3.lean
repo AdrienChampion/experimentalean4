@@ -138,6 +138,17 @@ inductive Tree (α : Type u) : Type u
 /-- `node r e subs` is the node of rank `r` storing element `e` with sub-trees `subs`. -/
 | node : Nat → α → List (Tree α) → Tree α
 ```
+
+A binomial *heap* is a list of binomial trees ordered by ascending rank, where all ranks are
+distinct. The main functions over binomial heaps, `BHeap.insert` and `BHeap.merge`, are interesting
+because they correspond to operations over the little-endian binary encoding for naturals.
+
+Writing `t_i` for *"a tree of rank `i`"*, if `t_i` is in binomial heap `bh` then in the binary
+encoding view the digit for `2ⁱ` is `1`, and `0` if there is no `t_i` in `bh`. For instance, `[t_1,
+t_2, t_4]` represents `10110` in big-endian notation, which is `2⁴+2²+2¹ = 22`.
+
+In this binary view, `BHeap.insert` increases the number and `BHeap.merge` adds two numbers. See
+tests at the end of the film.
 -/
 
 
