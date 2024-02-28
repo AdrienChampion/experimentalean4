@@ -115,10 +115,10 @@ end LftHeap
 
 /-! ## Binomial heaps
 
-A *binomial heap* over elements of type `α` and of rank `r` is a `node` with `r` children `t₁`, ...,
+A *binomial tree* over elements of type `α` and of rank `r` is a `node` with `r` children `t₁`, ...,
 `tᵣ` where each `tᵢ` is a binomial tree of rank `r - i`.
 
-Binomial heaps of rank 0, 1, 2, and 3 look as follows.
+Binomial trees of rank 0, 1, 2, and 3 look as follows.
 
 ```
 rank 0 | rank 1 | rank 2 | rank 3
