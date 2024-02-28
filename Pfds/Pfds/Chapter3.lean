@@ -203,15 +203,26 @@ namespace BHeap.Tree
     t
 
   namespace Simple
-    def leaf (a : α) : Simple α :=
+    def mkLeaf (a : α) : Simple α :=
       Tree.leaf a
 
+    variable (s : Simple α)
+
+    /-- Rank accessor. -/
     @[simp]
     abbrev rank (s : Simple α) : Nat :=
       s.fst
+    /-- Inner `Tree` accessor. -/
     @[simp]
     abbrev tree (s : Simple α) : Tree α s.rank :=
       s.snd
+
+    /-- Top element accessor. -/
+    def top : α :=
+      s.tree.top
+    /-- Sub-tree accessor. -/
+    def kids : TreeList α s.rank :=
+      s.tree.kids
 
     instance instCoeTree : CoeDep (Simple α) s (Tree α s.rank) where
       coe := s.tree
@@ -225,7 +236,14 @@ namespace BHeap.Tree
 
     instance instDecidableRankLt : ∀ (l r : Simple α), Decidable (l.rank_lt r) :=
       fun l r => if h : l.rankLt r then isTrue h else isFalse h
-end BHeap.Tree.Simple
+  end Simple
+end Tree
+
+namespace TreeList
+  def toList {r : Nat} : TreeList α r → List (Tree.Simple α)
+  | .nil => []
+  | hd:::tl => hd.toSimple :: tl.toList
+end BHeap.TreeList
 
 
 
@@ -449,4 +467,24 @@ namespace BHeap
     #eval test_count
   end Test
 
+
+
+  def removeMinTree [Ord α] : BHeap α → Option (Tree.Simple α × BHeap α)
+  | ⟨[]⟩ => none
+  | ⟨t::tl⟩ =>
+    if let some ⟨t', bh'⟩ := removeMinTree ⟨tl⟩ then
+      match compare t.top t'.top with
+      | .lt | .eq => some (t, tl)
+      | .gt => some (t', t::bh')
+    else some (t, tl)
+
+  def findMin [Ord α] (bh : BHeap α) : Option α := do
+    let (t, _) ← bh.removeMinTree
+    return t.top
+
+  def deleteMin [Ord α] (bh : BHeap α) : Option (α × BHeap α) := do
+    let (t, bh) ← bh.removeMinTree
+    -- `t`'s kids are in reverse order for `BHeap`
+    --                   vvvvvvvvvvvvvvvvvvvvv
+    return (t.top, merge t.kids.toList.reverse bh)
 end BHeap
