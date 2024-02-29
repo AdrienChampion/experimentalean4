@@ -56,18 +56,14 @@ namespace LftHeap
       | .lt | .eq => merge rgt₁ h₂ |> mk e₁ lft₁
       | .gt => merge h₁ rgt₂ |> mk e₂ lft₂
 
-    termination_by
-      merge lft rgt => lft.depth + rgt.depth
+    termination_by lft rgt =>
+      lft.depth + rgt.depth
     -- Ugly proof because I seldom need to do termination proofs, my tactic-fu is too weak to make
     -- this proof as simple as it needs to be. See [fromList] for a better termination proof.
     decreasing_by
-      rename h₁ = node _r₁ e₁ lft₁ rgt₁ => h₁_def
-      rename h₂ = node _r₂ e₂ lft₂ rgt₂ => h₂_def
-      simp_wf
-      simp [h₁_def, h₂_def, depth]
-      simp_arith
-      try apply Nat.le_max_left
-      try apply Nat.le_max_right
+      all_goals
+        simp_wf
+        simp_arith [*, depth, Nat.le_max_right]
   end merge
 
   /-- Inserts a value in the heap. -/
@@ -93,7 +89,7 @@ namespace LftHeap
     def fromList : List α → LftHeap α :=
       aux [] ∘ List.map just
     where
-      aux  : List (LftHeap α) → List (LftHeap α) → LftHeap α
+      aux : List (LftHeap α) → List (LftHeap α) → LftHeap α
       -- presentation optimized for proofs, *termination* proofs in particular
       | [], [] => empty
       | [h], []
@@ -103,11 +99,10 @@ namespace LftHeap
       | acc, fst::snd::tl =>
         let h := fst.merge snd
         aux (h::acc) tl
-
-    termination_by
-      aux acc l => acc.length + l.length
-    decreasing_by
-      simp_wf ; simp_arith
+      termination_by acc l =>
+        acc.length + l.length
+      decreasing_by
+        all_goals (simp_wf ; simp_arith)
   end fromList
 end LftHeap
 
@@ -315,14 +310,14 @@ namespace BHeap
     else
       merge trees₁ tl₂
       |>.trees.cons ⟨r₂, t₂⟩
-  termination_by merge l r => l.length + r.length
+  termination_by l r =>
+    l.length + r.length
   decreasing_by
-    simp_wf
-    simp [*, length, Nat.succ_add, Nat.add_succ]
-    try (
-      apply Nat.lt_trans (Nat.lt_succ_self _)
-      exact Nat.lt_succ_self _
-    )
+    all_goals
+      simp_wf
+      simp [*, length, Nat.succ_add, Nat.add_succ]
+    apply Nat.lt_trans (Nat.lt_succ_self _)
+    exact Nat.lt_succ_self _
 
   def map (f : Tree.Simple α → β) (bh : BHeap α) : List β :=
     bh.trees.map f
