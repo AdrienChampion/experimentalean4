@@ -8,7 +8,10 @@ namespace Pfds.C4
 
 /-! ## Streams
 
-Implemented using `Thunk`-s.
+Implemented using `Thunk`-s. Note that `Pfds.Init` extends `Thunk`-s with
+
+- a `lazy $t` notation that wraps `$t` in (a computation in) a `Thunk`, and
+- `Monad Thunk` and `LawfulMonad Thunk` instances.
 -/
 
 
@@ -23,20 +26,31 @@ mutual
   deriving Inhabited
 end
 
+namespace StreamCell
+  /-- `StreamCell`'s `nil` constructor. -/
+  scoped notation "[!]" => StreamCell.nil
+  /-- `StreamCell`'s node `cons`tructor. -/
+  scoped infixr:67 " !:: " => StreamCell.cons
+end StreamCell
+
+open scoped StreamCell
+
 namespace Stream
-  section
-    open Lean
+  /-- Builds a `Thunk` (lazily) evaluating to a term. -/
+  syntax:max "stream! " term : term
 
-    scoped notation "[]" =>
-      Stream.mk lazy StreamCell.nil
+  macro_rules
+  | `(stream! $t) => `(Stream.mk $ Thunk.mk fun _ => $t)
 
-    scoped syntax:67 (name := consSyntax) term:68 " ::: " term:67 : term
+  protected abbrev nil : Stream α :=
+    stream! [!]
+  protected abbrev cons (hd : α) (tl : Stream α) : Stream α :=
+    stream! hd !:: tl
 
-    @[macro consSyntax] def elabCons : Macro
-    | `( $hd:term ::: $tl:term ) =>
-      `(Stream.mk (lazy StreamCell.cons $hd $tl))
-    | _ => Macro.throwUnsupported
-  end
+  /-- An empty `Stream`. -/
+  scoped notation "[~]" => Stream.nil
+  /-- Prepends a value at the beginning of a `Stream`, and does so **eagerly**. -/
+  scoped infixr:67 " ~:: " => Stream.cons
 
   def cell : Stream α → Thunk (StreamCell α)
   | mk cell => cell
@@ -53,7 +67,7 @@ end Stream
 open scoped Stream
 
 protected partial def StreamCell.pure (a : α) : StreamCell α :=
-  .cons a []
+  a !:: [~]
 
 protected partial def Stream.pure : α → Stream α :=
   (lazy StreamCell.pure ·)
@@ -104,23 +118,23 @@ namespace Stream
   | 0, _ =>
     .mk lazy .nil
   | n + 1, s =>
-    s.consMap fun hd tl => .cons hd (tl.take n)
+    s.consMap fun hd tl => hd !:: (tl.take n)
 
   partial def takeToList (n : Nat) (s : Stream α) : List α :=
     aux n s.getCell
   where
     aux : Nat → StreamCell α → List α
     | 0, _
-    | _, .nil => .nil
-    | n + 1, .cons hd tl => hd :: (aux n $ tl.getCell)
+    | _, [!] => .nil
+    | n + 1, hd !:: tl => hd :: (aux n $ tl.getCell)
 
-  #guard [].takeToList 0 = .nil (α := Unit)
-  #guard [].takeToList 10 = .nil (α := Unit)
-  #guard (0:::0:::0:::0:::0:::[]).takeToList 0 = .nil
-  #guard (0:::0:::0:::0:::0:::[]).takeToList 1 = [0]
-  #guard (0:::0:::0:::0:::0:::[]).takeToList 3 = [0, 0, 0]
-  #guard (0:::0:::0:::0:::0:::[]).takeToList 5 = [0, 0, 0, 0, 0]
-  #guard (0:::0:::0:::0:::0:::[]).takeToList 9 = [0, 0, 0, 0, 0]
+  #guard [~].takeToList 0 = ([] : List Unit)
+  #guard [~].takeToList 10 = ([] : List Unit)
+  #guard (0~::0~::0~::0~::0~::[~]).takeToList 0 = []
+  #guard (0~::0~::0~::0~::0~::[~]).takeToList 1 = [0]
+  #guard (0~::0~::0~::0~::0~::[~]).takeToList 3 = [0, 0, 0]
+  #guard (0~::0~::0~::0~::0~::[~]).takeToList 5 = [0, 0, 0, 0, 0]
+  #guard (0~::0~::0~::0~::0~::[~]).takeToList 9 = [0, 0, 0, 0, 0]
 
 
 
@@ -128,28 +142,28 @@ namespace Stream
     match (n, s.getCell) with
     | (0, c) => c
     | (_, .nil) => .nil
-    | (n + 1, .cons _hd tl) =>
+    | (n + 1, _hd !:: tl) =>
       (tl.drop n).getCell
 
   def getVal (s : Stream α) : Option α :=
-    if let .cons hd _ := s.getCell
+    if let hd !:: _ := s.getCell
     then hd else none
 
   partial def get : Nat → Stream α → Option α
   | 0, s => s.getVal
   | n + 1, s =>
-    if let .cons _ s := s.getCell
+    if let _ !:: s := s.getCell
     then s.get n else none
 
   /-- Reverses a stream, will not be able to yield values on infinite streams. -/
   partial def reverse : Stream α → Stream α :=
-    aux []
+    aux [~]
   where
     aux (acc s : Stream α) : Stream α :=
       s.branchMap
         (fun _ => acc.getCell)
         (fun hd tl =>
-          let acc := hd ::: acc
+          let acc := hd ~:: acc
           aux acc tl |>.getCell)
 
 
@@ -162,18 +176,21 @@ namespace Stream
 
 
   partial def fib : Stream Nat :=
-    1 ::: 1 ::: aux 1 1
+    1 ~:: 1 ~:: aux 1 1
   where
     aux (pre₂ pre₁ : Nat) : Stream Nat := .mk lazy
       let val := pre₂ + pre₁
       .cons val (aux pre₁ val)
 
   #guard fib.takeToList 10 = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+  #guard (fib.take 10 |>.reverse |>.takeToList 20) = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55].reverse
 
   partial def fact : Stream Nat :=
-    aux 1 2
+    1 ~:: aux 1 1
   where
     aux (pre idx : Nat) : Stream Nat := .mk lazy
       let val := pre * idx
       .cons val (aux val idx.succ)
+
+  #guard fact.takeToList 7 = [1, 1, 2, 6, 24, 120, 720]
 end Stream
