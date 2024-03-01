@@ -1,4 +1,4 @@
 import Pfds
 
-def main : IO Unit :=
-  IO.println s!"running"
+def main : IO Unit := do
+  println! "running"

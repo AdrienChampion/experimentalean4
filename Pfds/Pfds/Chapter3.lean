@@ -494,3 +494,102 @@ namespace BHeap
     --                   vvvvvvvvvvvvvvvvvvvvv
     return (t.top, merge t.kids.toList.reverse bh)
 end BHeap
+
+
+
+/-! ## Red-black trees -/
+
+
+inductive RBColor
+| red | blk
+deriving Inhabited, BEq
+
+open RBColor (red blk)
+
+inductive RBTree (α : Type u)
+| empty
+| node : RBColor → RBTree α → α → RBTree α → RBTree α
+deriving Inhabited, BEq
+
+namespace RBTree
+  instance instEmptyCollection : EmptyCollection (RBTree α) :=
+    ⟨empty⟩
+
+  def leaf : α → RBTree α :=
+    (node red ∅ · ∅)
+
+  variable {α : Type u} [Ord α]
+
+  def mem (a : α) : RBTree α → Bool
+  | empty => false
+  | node _ lft e rgt =>
+    match compare a e with
+    | .lt => lft.mem a
+    | .eq => true
+    | .gt => rgt.mem a
+
+  instance instMembership : Membership α (RBTree α) where
+    mem a rb := rb.mem a
+
+  def nodeOfProd : (RBColor × RBTree α × α × RBTree α) → RBTree α
+  | (c, lft, e, rgt) => node c lft e rgt
+
+  def balance (c : RBColor) (lft : RBTree α) (e : α) (rgt : RBTree α) : RBTree α :=
+    raw c lft e rgt |> nodeOfProd
+  where
+    raw : RBColor → RBTree α → α → RBTree α → RBColor × RBTree α × α × RBTree α
+    | blk, (node red (node red t₁ e₁ t₂) e₂ t₃), e₃, t₄
+    | blk, (node red t₁ e₁ (node red t₂ e₂ t₃)), e₃, t₄
+    | blk, t₁, e₁, (node red (node red t₂ e₂ t₃) e₃ t₄)
+    | blk, t₁, e₁, (node red t₂ e₂ (node red t₃ e₃ t₄)) =>
+      let lft := node blk t₁ e₁ t₂
+      let rgt := node blk t₃ e₃ t₄
+      (red, lft, e₂, rgt)
+    | c, lft, e, rgt =>
+      (c, lft, e, rgt)
+
+  def lbalance
+    (c : RBColor)
+    (lft : RBColor × RBTree α × α × RBTree α) (e : α) (rgt : RBTree α)
+  : RBTree α :=
+    raw c lft e rgt |> nodeOfProd
+  where
+    raw
+      | blk, (red, (node red t₁ e₁ t₂), e₂, t₃), e₃, t₄
+      | blk, (red, t₁, e₁, (node red t₂ e₂ t₃)), e₃, t₄ =>
+        let lft := node blk t₁ e₁ t₂
+        let rgt := node blk t₃ e₃ t₄
+        (red, lft, e₂, rgt)
+      | c, lft, e, rgt =>
+        (c, nodeOfProd lft, e, rgt)
+
+  def rbalance
+    (c : RBColor)
+    (lft : RBTree α) (e : α) (rgt : RBColor × RBTree α × α × RBTree α)
+  : RBTree α :=
+    raw c lft e rgt |> nodeOfProd
+  where
+    raw
+      | blk, t₁, e₁, (red, (node red t₂ e₂ t₃), e₃, t₄)
+      | blk, t₁, e₁, (red, t₂, e₂, (node red t₃ e₃ t₄)) =>
+        let lft := node blk t₁ e₁ t₂
+        let rgt := node blk t₃ e₃ t₄
+        (red, lft, e₂, rgt)
+      | c, lft, e, rgt =>
+        (c, lft, e, nodeOfProd rgt)
+
+  def insert (a : α) (rb : RBTree α) : RBTree α :=
+    let (_, lft, e, rgt) := aux rb
+    node blk lft e rgt
+  where
+    aux : RBTree α → (RBColor × RBTree α × α × RBTree α)
+      | empty => (red, ∅, a, ∅)
+      | node c lft e rgt =>
+        match compare a e with
+        | .lt =>
+          lbalance.raw c (aux lft) e rgt
+        | .eq =>
+          (c, lft, e, rgt)
+        | .gt =>
+          rbalance.raw c lft e (aux rgt)
+end RBTree
