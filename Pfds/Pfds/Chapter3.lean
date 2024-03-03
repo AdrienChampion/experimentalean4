@@ -431,46 +431,79 @@ namespace BHeap
       else
         println! "{bh.toBinString 8}"
 
-    def test_insert₁ (withInfo := false) : IO Unit := do
-      let mut bh : BHeap Nat := nil
-      display bh none withInfo
-      bh := bh.insert 0
-      display bh none withInfo
-      bh := bh.insert 0
-      display bh none withInfo
-      bh := bh.insert 0
-      display bh none withInfo
-      bh := bh.insert 0
-      display bh none withInfo
-      bh := bh.insert 0
-      display bh none withInfo
-      bh := bh.insert 0
-      display bh none withInfo
-      bh := bh.insert 0
-      display bh none withInfo
+    namespace Insert₁
+      def bh0 : BHeap Nat := nil
+      #guard bh0.toBinString 3 = "000"
+      def bh1 : BHeap Nat := bh0.insert 0
+      #guard bh1.toBinString 3 = "001"
+      def bh2 : BHeap Nat := bh1.insert 0
+      #guard bh2.toBinString 3 = "010"
+      def bh3 : BHeap Nat := bh2.insert 0
+      #guard bh3.toBinString 3 = "011"
+      def bh4 : BHeap Nat := bh3.insert 0
+      #guard bh4.toBinString 3 = "100"
+      def bh5 : BHeap Nat := bh4.insert 0
+      #guard bh5.toBinString 3 = "101"
+      def bh6 : BHeap Nat := bh5.insert 0
+      #guard bh6.toBinString 3 = "110"
+      def bh7 : BHeap Nat := bh6.insert 0
+      #guard bh7.toBinString 3 = "111"
 
-    #eval test_insert₁
+      def test_insert₁ (withInfo := false) : IO Unit := do
+        display bh0 none withInfo
+        display bh1 none withInfo
+        display bh2 none withInfo
+        display bh3 none withInfo
+        display bh4 none withInfo
+        display bh5 none withInfo
+        display bh6 none withInfo
+        display bh7 none withInfo
 
-    def test_count (withInfo := false) : IO Unit := do
-      let mut cnt : BNat := 0
-      display cnt s!"cnt := 0 | {cnt.toNat}" withInfo
-      cnt := 6
-      display cnt s!"cnt := 6 | {cnt.toNat}" withInfo
-      cnt := 11
-      display cnt s!"cnt := 11 | {cnt.toNat}" withInfo
+      -- #eval test_insert₁
+    end Insert₁
 
-      cnt := cnt + 7
-      display cnt s!"cnt := cnt + 7 | {cnt.toNat}" withInfo
-      cnt := cnt + 0
-      display cnt s!"cnt := cnt + 0 | {cnt.toNat}" withInfo
+    namespace Count
+      def cnt0 : BNat := 0
+      #guard cnt0.toBinString 3 = "000"
+      #guard cnt0.toNat = 0
 
-      cnt := cnt * 10
-      display cnt s!"cnt := cnt * 10 | {cnt.toNat}" withInfo
+      def cnt1 : BNat := 6
+      #guard cnt1.toBinString 3 = "110"
+      #guard cnt1.toNat = 6
 
-      cnt := cnt * 0
-      display cnt s!"cnt := cnt * 0 | {cnt.toNat}" withInfo
+      def cnt2 : BNat := 11
+      #guard cnt2.toBinString = "1011"
+      #guard cnt2.toNat = 11
 
-    #eval test_count
+      def cnt3 : BNat := cnt2 + 7
+      #guard cnt3.toBinString = "10010"
+      #guard cnt3.toNat = 18
+
+      def cnt4 : BNat := cnt3 + 0
+      #guard cnt4.toBinString = "10010"
+      #guard cnt4.toNat = 18
+
+      def cnt5 : BNat := cnt4 * 10
+      #guard cnt5.toBinString = "10110100"
+      #guard cnt5.toNat = 180
+
+      def cnt6 : BNat := cnt5 * 0
+      #guard cnt6.toBinString 3 = "000"
+      #guard cnt6.toNat = 0
+
+      def test_count (withInfo := false) : IO Unit := do
+        display cnt0 s!"cnt := 0 | {cnt0.toNat}" withInfo
+        display cnt1 s!"cnt := 6 | {cnt1.toNat}" withInfo
+        display cnt2 s!"cnt := 11 | {cnt2.toNat}" withInfo
+
+        display cnt3 s!"cnt := cnt + 7 | {cnt3.toNat}" withInfo
+        display cnt4 s!"cnt := cnt + 0 | {cnt4.toNat}" withInfo
+
+        display cnt5 s!"cnt := cnt * 10 | {cnt5.toNat}" withInfo
+        display cnt6 s!"cnt := cnt * 0 | {cnt6.toNat}" withInfo
+
+      -- #eval test_count
+    end Count
   end Test
 
 

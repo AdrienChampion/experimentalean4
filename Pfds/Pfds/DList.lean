@@ -348,7 +348,7 @@ namespace DList
       else
         tl.allM f early
 
-    #eval ofList [1, 2, 3, 4] |>.allM (M := Id) (· ≠ 0 |> pure)
+    #guard ofList [1, 2, 3, 4] |>.allM (M := Id) (· ≠ 0 |> pure)
 
     def anyM {M : Type → Type u} [Monad M]
       (f : α → M Bool)
@@ -357,6 +357,6 @@ namespace DList
     : M Bool :=
       not <$> dl.allM (fun a => not <$> f a) early
 
-    #eval ofList [1, 2, 3, 4] |>.anyM (M := Id) (· ≠ 0 |> pure)
+    #guard ofList [1, 2, 3, 4] |>.anyM (M := Id) (· ≠ 0 |> pure)
   end monadic
 end AsInductive.DList
